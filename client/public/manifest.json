@@ -1,0 +1,18 @@
+{
+  "name": "Budo — Multiplayer Ludo Game",
+  "short_name": "Budo",
+  "description": "Mobile-First Multiplayer Ludo with 2-8 players, voice chat, and 90s vintage profile studio.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

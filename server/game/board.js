@@ -1,0 +1,78 @@
+/**
+ * BUDO Multi-Player Ludo Board System
+ * Supports 2, 4, 6, and 8 player dynamic layouts with accurate track sizes, safe zones, and home runs.
+ */
+
+export const PLAYER_COLORS_4 = [
+  { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
+  { id: 1, key: 'green', name: 'Green', hex: '#10B981', lightHex: '#6EE7B7', startOffset: 13 },
+  { id: 2, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 26 },
+  { id: 3, key: 'blue', name: 'Blue', hex: '#3B82F6', lightHex: '#93C5FD', startOffset: 39 }
+];
+
+export const PLAYER_COLORS_2 = [
+  { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
+  { id: 1, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 26 }
+];
+
+export const PLAYER_COLORS_6 = [
+  { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
+  { id: 1, key: 'orange', name: 'Orange', hex: '#F97316', lightHex: '#FDBA74', startOffset: 14 },
+  { id: 2, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 28 },
+  { id: 3, key: 'green', name: 'Green', hex: '#10B981', lightHex: '#6EE7B7', startOffset: 42 },
+  { id: 4, key: 'cyan', name: 'Cyan', hex: '#06B6D4', lightHex: '#67E8F9', startOffset: 56 },
+  { id: 5, key: 'purple', name: 'Purple', hex: '#8B5CF6', lightHex: '#C4B5FD', startOffset: 70 }
+];
+
+export const PLAYER_COLORS_8 = [
+  { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
+  { id: 1, key: 'orange', name: 'Orange', hex: '#F97316', lightHex: '#FDBA74', startOffset: 12 },
+  { id: 2, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 24 },
+  { id: 3, key: 'lime', name: 'Lime', hex: '#84CC16', lightHex: '#BEF264', startOffset: 36 },
+  { id: 4, key: 'green', name: 'Green', hex: '#10B981', lightHex: '#6EE7B7', startOffset: 48 },
+  { id: 5, key: 'cyan', name: 'Cyan', hex: '#06B6D4', lightHex: '#67E8F9', startOffset: 60 },
+  { id: 6, key: 'blue', name: 'Blue', hex: '#3B82F6', lightHex: '#93C5FD', startOffset: 72 },
+  { id: 7, key: 'purple', name: 'Purple', hex: '#8B5CF6', lightHex: '#C4B5FD', startOffset: 84 }
+];
+
+export const BOARD_CONFIGS = {
+  2: {
+    maxPlayers: 2,
+    colors: PLAYER_COLORS_2,
+    trackLength: 52,
+    homeStretchLength: 6, // step 0..5 (5 is final finish cell 56)
+    totalStepsToFinish: 57,
+    safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47] // Global track safe spots
+  },
+  4: {
+    maxPlayers: 4,
+    colors: PLAYER_COLORS_4,
+    trackLength: 52,
+    homeStretchLength: 6,
+    totalStepsToFinish: 57,
+    safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
+  },
+  6: {
+    maxPlayers: 6,
+    colors: PLAYER_COLORS_6,
+    trackLength: 84,
+    homeStretchLength: 6,
+    totalStepsToFinish: 89,
+    safeTrackIndices: [0, 8, 14, 22, 28, 36, 42, 50, 56, 64, 70, 78]
+  },
+  8: {
+    maxPlayers: 8,
+    colors: PLAYER_COLORS_8,
+    trackLength: 96,
+    homeStretchLength: 6,
+    totalStepsToFinish: 101,
+    safeTrackIndices: [0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90]
+  }
+};
+
+export function getBoardConfig(playerCount = 4) {
+  if (playerCount <= 2) return BOARD_CONFIGS[2];
+  if (playerCount <= 4) return BOARD_CONFIGS[4];
+  if (playerCount <= 6) return BOARD_CONFIGS[6];
+  return BOARD_CONFIGS[8];
+}

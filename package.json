@@ -1,0 +1,15 @@
+{
+  "name": "budo-monorepo",
+  "version": "1.0.0",
+  "description": "BUDO - Mobile-First Multiplayer Ludo Web Application & PWA",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build",
+    "build": "npm run build:client",
+    "start": "npm --prefix server start"
+  },
+  "keywords": ["ludo", "multiplayer", "socket.io", "react", "pwa", "postgresql", "mobile-first"],
+  "author": "Budo Team",
+  "license": "MIT"
+}
