@@ -273,9 +273,9 @@ export default function GamePlay() {
       </header>
 
       {/* Main Game Arena */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-between p-2">
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-start p-2 gap-2">
         {/* Top Opponents Strip */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-2 my-1">
+        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-1.5">
           {gameState.players.map((p, idx) => (
             <PlayerCard
               key={idx}
@@ -288,47 +288,78 @@ export default function GamePlay() {
           ))}
         </div>
 
-        {/* Dynamic Ludo Board with Theme */}
-        <div className="w-full flex items-center justify-center my-auto">
-          <LudoBoard
-            gameState={gameState}
-            onSelectToken={handleSelectToken}
-            validTokens={isMyTurn ? validTokens : []}
-            themeName={themeName}
-          />
+        {/* Quick In-Game Board Color Theme Switcher */}
+        <div className="w-full flex items-center justify-between gap-1 bg-slate-950/60 border border-slate-800/80 rounded-2xl px-2.5 py-1.5 backdrop-blur-sm overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0 mr-1">
+            <Palette className="w-3.5 h-3.5 text-purple-400" />
+            <span>Theme:</span>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {Object.values(BOARD_THEMES).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => handleSelectTheme(t.id)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-90 ${
+                  themeName === t.id
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-300'
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
+                }`}
+              >
+                <span>{t.icon}</span>
+                <span className="hidden sm:inline">{t.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Bottom Turn Controls & Animated 3D Dice */}
-        <div className="w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 flex items-center justify-between shadow-2xl backdrop-blur-md mt-2">
-          <div className="flex items-center gap-3">
-            <img
-              src={currentPlayer?.avatarUrl || '/avatars/default.png'}
-              alt="Player"
-              className="w-12 h-12 rounded-2xl border-2 object-cover bg-slate-800 shadow-md"
-              style={{ borderColor: currentPlayer?.color?.hex }}
-            />
+        {/* Active Turn Controls & Animated 3D Dice - Snug directly above Board */}
+        <div className="w-full bg-slate-900/95 border border-slate-800/90 rounded-2xl p-2.5 flex items-center justify-between shadow-2xl backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <img
+                src={currentPlayer?.avatarUrl || '/avatars/default.png'}
+                alt="Player"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 object-cover bg-slate-800 shadow-md"
+                style={{ borderColor: currentPlayer?.color?.hex }}
+              />
+              <span
+                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border border-slate-900 shadow-sm"
+                style={{ backgroundColor: currentPlayer?.color?.hex }}
+              ></span>
+            </div>
             <div>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <div className="text-xs font-black text-white flex items-center gap-1.5">
                 <span>{currentPlayer?.username}</span>
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: currentPlayer?.color?.hex }}
-                ></span>
+                {isMyTurn && (
+                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse">
+                    YOU
+                  </span>
+                )}
               </div>
               <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                {isWaitingRoll && (isMyTurn ? 'Tap 3D dice to roll' : 'Rolling dice...')}
-                {isWaitingMove && (isMyTurn ? (validTokens.length === 1 ? 'Auto-moving coin...' : 'Choose glowing coin') : 'Selecting coin...')}
+                {isWaitingRoll && (isMyTurn ? '👉 Tap 3D Dice to roll' : 'Rolling dice...')}
+                {isWaitingMove && (isMyTurn ? (validTokens.length === 1 ? '⚡ Auto-moving coin...' : '✨ Choose glowing coin') : 'Selecting coin...')}
               </div>
             </div>
           </div>
 
-          {/* Dice Component */}
+          {/* 3D Dice Component attached snug to board */}
           <Dice
             value={gameState.diceValue}
             isRolling={diceRolling}
             disabled={!isMyTurn || !isWaitingRoll}
             onRoll={handleRollDice}
             playerColor={currentPlayer?.color?.hex}
+          />
+        </div>
+
+        {/* Dynamic Ludo Board with Theme & Step-by-Step Animation */}
+        <div className="w-full flex items-center justify-center">
+          <LudoBoard
+            gameState={gameState}
+            onSelectToken={handleSelectToken}
+            validTokens={isMyTurn ? validTokens : []}
+            themeName={themeName}
           />
         </div>
       </main>

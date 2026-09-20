@@ -6,6 +6,7 @@ export default function Token({
   color,
   isValidMove,
   isSelected,
+  isHopping = false,
   onClick,
   stackCount = 1,
   size = 'md'
@@ -35,8 +36,12 @@ export default function Token({
   return (
     <div
       onClick={handleClick}
-      className={`relative rounded-full flex items-center justify-center transition-all duration-300 select-none ${
-        isValidMove ? 'cursor-pointer hover:scale-115 active:scale-95 animate-pulse-glow z-30' : 'z-10'
+      className={`relative rounded-full flex items-center justify-center transition-all duration-150 select-none ${
+        isHopping
+          ? 'animate-token-hop z-50 scale-125'
+          : isValidMove
+          ? 'cursor-pointer hover:scale-115 active:scale-95 animate-pulse-glow z-30'
+          : 'z-10'
       }`}
       style={{
         width: size === 'sm' ? '22px' : '28px',
@@ -46,16 +51,20 @@ export default function Token({
       {/* 3D Outer Token Cap */}
       <div
         className={`w-full h-full rounded-full bg-gradient-to-b ${styleClass} border-2 shadow-md flex items-center justify-center relative ${
-          isValidMove ? 'ring-4 ring-offset-1 ring-offset-slate-900 animate-bounce-subtle' : ''
+          isHopping
+            ? 'ring-4 ring-white shadow-2xl drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]'
+            : isValidMove
+            ? 'ring-4 ring-offset-1 ring-offset-slate-900 animate-bounce-subtle'
+            : ''
         } ${isSelected ? 'ring-4 ring-yellow-400 scale-110' : ''}`}
       >
         {/* Inner Highlight Ring */}
-        <div className="w-2.5 h-2.5 rounded-full bg-white/60 shadow-inner flex items-center justify-center">
+        <div className="w-2.5 h-2.5 rounded-full bg-white/70 shadow-inner flex items-center justify-center">
           <div className="w-1 h-1 rounded-full bg-slate-900/40"></div>
         </div>
 
         {/* Stack Multiplier Badge */}
-        {stackCount > 1 && (
+        {stackCount > 1 && !isHopping && (
           <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-950 text-white text-[9px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg">
             {stackCount}
           </span>

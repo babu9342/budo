@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Token from './Token';
 import { getGlobalPosition } from '../game/rules';
 import { BOARD_THEMES } from '../game/boardThemes';
+import { sound } from '../utils/soundEngine';
 
 export default function LudoBoard({
   gameState,
@@ -15,36 +16,130 @@ export default function LudoBoard({
   const playerCount = gameState.players.length;
   const config = gameState.config;
 
+  const [animatingPositions, setAnimatingPositions] = useState({});
+  const [hoppingToken, setHoppingToken] = useState(null);
+  const prevPositionsRef = useRef(null);
+  const animIntervalRef = useRef(null);
+
+  // Step-by-step token hopping animation engine
+  useEffect(() => {
+    if (!gameState || !gameState.players) return;
+
+    const currentMap = {};
+    gameState.players.forEach((p, pIdx) => {
+      p.tokens.forEach((step, tokId) => {
+        currentMap[`${pIdx}_${tokId}`] = step;
+      });
+    });
+
+    if (!prevPositionsRef.current) {
+      prevPositionsRef.current = currentMap;
+      setAnimatingPositions(currentMap);
+      return;
+    }
+
+    const prevMap = prevPositionsRef.current;
+    let forwardMove = null;
+
+    // Detect if any token moved forward
+    for (const key in currentMap) {
+      const oldStep = prevMap[key] !== undefined ? prevMap[key] : -1;
+      const newStep = currentMap[key];
+
+      if (newStep !== oldStep) {
+        const [pIdx, tokId] = key.split('_').map(Number);
+        if (oldStep === -1 && newStep === 0) {
+          forwardMove = { key, pIdx, tokId, from: -1, to: 0, type: 'spawn' };
+          break;
+        } else if (newStep > oldStep && oldStep >= 0) {
+          forwardMove = { key, pIdx, tokId, from: oldStep, to: newStep, type: 'step_by_step' };
+          break;
+        }
+      }
+    }
+
+    // Update ref
+    prevPositionsRef.current = currentMap;
+
+    if (forwardMove) {
+      if (animIntervalRef.current) clearInterval(animIntervalRef.current);
+
+      if (forwardMove.type === 'spawn') {
+        sound.playMove();
+        setHoppingToken(forwardMove.key);
+        setAnimatingPositions(prev => ({ ...prev, [forwardMove.key]: 0 }));
+        const t = setTimeout(() => {
+          setHoppingToken(null);
+          setAnimatingPositions(currentMap);
+        }, 180);
+        return () => clearTimeout(t);
+      } else if (forwardMove.type === 'step_by_step') {
+        let currentStep = forwardMove.from;
+        const targetStep = forwardMove.to;
+        const key = forwardMove.key;
+
+        setHoppingToken(key);
+
+        animIntervalRef.current = setInterval(() => {
+          currentStep += 1;
+          sound.playMove();
+          setHoppingToken(key);
+          setAnimatingPositions(prev => ({ ...prev, [key]: currentStep }));
+
+          if (currentStep >= targetStep) {
+            clearInterval(animIntervalRef.current);
+            animIntervalRef.current = null;
+            setTimeout(() => {
+              setHoppingToken(null);
+              setAnimatingPositions(currentMap);
+            }, 120);
+          }
+        }, 120);
+
+        return () => {
+          if (animIntervalRef.current) clearInterval(animIntervalRef.current);
+        };
+      }
+    } else {
+      setAnimatingPositions(currentMap);
+    }
+  }, [gameState]);
+
   // Map of globalPos -> Array of token objects
   const cellOccupants = {};
-  // Home bases: playerIndex -> Array of { tokenId, color, isValid, step, playerIndex }
+  // Home bases: playerIndex -> Array of { tokenId, color, isValid, step, playerIndex, isHopping }
   const homeBases = Array.from({ length: playerCount }, () => []);
-  // Finish base: Array of { playerIndex, tokenId, color }
+  // Finish base: Array of { playerIndex, tokenId, color, isHopping }
   const finishOccupants = [];
 
   gameState.players.forEach((player, pIdx) => {
-    player.tokens.forEach((step, tokId) => {
+    player.tokens.forEach((actualStep, tokId) => {
       const isCurrentPlayerTurn = gameState.currentTurnIndex === pIdx;
       const isValid = isCurrentPlayerTurn && validTokens.includes(tokId);
+      const key = `${pIdx}_${tokId}`;
+
+      const displayedStep = animatingPositions[key] !== undefined ? animatingPositions[key] : actualStep;
+      const isHopping = hoppingToken === key;
 
       const tokenObj = {
         playerIndex: pIdx,
         tokenId: tokId,
         color: player.color,
         isValid,
-        step
+        step: displayedStep,
+        isHopping
       };
 
-      if (step === -1) {
+      if (displayedStep === -1) {
         if (!homeBases[pIdx]) homeBases[pIdx] = [];
         homeBases[pIdx].push(tokenObj);
-      } else if (step >= config.totalStepsToFinish) {
+      } else if (displayedStep >= config.totalStepsToFinish) {
         finishOccupants.push(tokenObj);
       } else {
-        const globalPos = getGlobalPosition(pIdx, step, config);
-        const key = typeof globalPos === 'number' ? `track_${globalPos}` : globalPos;
-        if (!cellOccupants[key]) cellOccupants[key] = [];
-        cellOccupants[key].push(tokenObj);
+        const globalPos = getGlobalPosition(pIdx, displayedStep, config);
+        const cellKey = typeof globalPos === 'number' ? `track_${globalPos}` : globalPos;
+        if (!cellOccupants[cellKey]) cellOccupants[cellKey] = [];
+        cellOccupants[cellKey].push(tokenObj);
       }
     });
   });
@@ -267,6 +362,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
                 <Token
                   color={token.color}
                   isValidMove={token.isValid}
+                  isHopping={token.isHopping}
                   onClick={() => onSelectToken(token.tokenId)}
                   size="md"
                 />
@@ -363,6 +459,7 @@ function renderSubGrid(
                   <Token
                     color={occ.color}
                     isValidMove={occ.isValid}
+                    isHopping={occ.isHopping}
                     onClick={() => onSelectToken(occ.tokenId)}
                     stackCount={occupants.length}
                     size="sm"
@@ -397,7 +494,7 @@ function RadialMultiPlayerBoard({
         <span className="text-amber-400 text-xs font-black uppercase tracking-wider">BUDO</span>
         <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
           {finishOccupants.map((t, idx) => (
-            <Token key={`rad_fin_${idx}`} color={t.color} size="sm" />
+            <Token key={`rad_fin_${idx}`} color={t.color} size="sm" isHopping={t.isHopping} />
           ))}
           {finishOccupants.length === 0 && (
             <span className="text-amber-300 text-sm">🏆</span>
@@ -431,6 +528,7 @@ function RadialMultiPlayerBoard({
                     key={tIdx}
                     color={tok.color}
                     isValidMove={tok.isValid}
+                    isHopping={tok.isHopping}
                     onClick={() => onSelectToken(tok.tokenId)}
                     size="sm"
                   />
