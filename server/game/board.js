@@ -12,7 +12,13 @@ export const PLAYER_COLORS_4 = [
 
 export const PLAYER_COLORS_2 = [
   { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
-  { id: 1, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 26 }
+  { id: 1, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 26 } // Opposite to Red
+];
+
+export const PLAYER_COLORS_3 = [
+  { id: 0, key: 'red', name: 'Red', hex: '#EF4444', lightHex: '#FCA5A5', startOffset: 0 },
+  { id: 1, key: 'yellow', name: 'Yellow', hex: '#F59E0B', lightHex: '#FCD34D', startOffset: 26 }, // Opposite to Red
+  { id: 2, key: 'green', name: 'Green', hex: '#10B981', lightHex: '#6EE7B7', startOffset: 13 }
 ];
 
 export const PLAYER_COLORS_6 = [
@@ -40,9 +46,17 @@ export const BOARD_CONFIGS = {
     maxPlayers: 2,
     colors: PLAYER_COLORS_2,
     trackLength: 52,
-    homeStretchLength: 6, // step 0..5 (5 is final finish cell 56)
+    homeStretchLength: 6,
     totalStepsToFinish: 57,
-    safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47] // Global track safe spots
+    safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
+  },
+  3: {
+    maxPlayers: 3,
+    colors: PLAYER_COLORS_3,
+    trackLength: 52,
+    homeStretchLength: 6,
+    totalStepsToFinish: 57,
+    safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
   },
   4: {
     maxPlayers: 4,
@@ -72,6 +86,7 @@ export const BOARD_CONFIGS = {
 
 export function getBoardConfig(playerCount = 4) {
   if (playerCount <= 2) return BOARD_CONFIGS[2];
+  if (playerCount === 3) return BOARD_CONFIGS[3];
   if (playerCount <= 4) return BOARD_CONFIGS[4];
   if (playerCount <= 6) return BOARD_CONFIGS[6];
   return BOARD_CONFIGS[8];

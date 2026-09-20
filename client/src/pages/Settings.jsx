@@ -102,6 +102,43 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Board Color Theme Selection */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-3">
+          <div className="text-xs font-bold uppercase text-slate-400">Board Color & Visual Theme</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              { id: 'classic', name: 'Classic Royal', icon: '👑' },
+              { id: 'cyber', name: 'Cyber Neon AMOLED', icon: '⚡' },
+              { id: 'wood', name: 'Wooden Prestige', icon: '🪵' },
+              { id: 'emerald', name: 'Emerald Jade', icon: '💎' },
+              { id: 'galaxy', name: 'Midnight Galaxy', icon: '🌌' }
+            ].map((t) => {
+              const activeTheme = localStorage.getItem('budo_board_theme') || 'classic';
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    sound.playClick();
+                    localStorage.setItem('budo_board_theme', t.id);
+                    navigate(0); // Refresh to apply
+                  }}
+                  className={`p-3 rounded-2xl border text-xs font-bold flex items-center justify-between transition-all active:scale-95 ${
+                    activeTheme === t.id
+                      ? 'bg-purple-600/30 border-purple-400 text-white shadow-md'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-base">{t.icon}</span>
+                    <span>{t.name}</span>
+                  </span>
+                  {activeTheme === t.id && <span className="text-purple-400 text-xs font-bold">Active</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* How to Play Rules */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl space-y-2">
           <button

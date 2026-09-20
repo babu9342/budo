@@ -67,13 +67,13 @@ export default function CreateRoom() {
             </div>
           )}
 
-          {/* Player Count Selector (2, 4, 6, 8) */}
+          {/* Player Count Selector (2, 3, 4, 6, 8) */}
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
               Select Player Count
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[2, 4, 6, 8].map((count) => (
+            <div className="grid grid-cols-5 gap-2">
+              {[2, 3, 4, 6, 8].map((count) => (
                 <button
                   key={count}
                   type="button"

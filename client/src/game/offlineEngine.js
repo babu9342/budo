@@ -26,6 +26,8 @@ export class OfflineLudoEngine {
     this.winner = null;
     this.rankingsList = [];
     this.moveHistory = [];
+    this.turnTimeoutMs = 60000;
+    this.turnStartTime = Date.now();
   }
 
   rollDice() {
@@ -138,6 +140,7 @@ export class OfflineLudoEngine {
       this.phase = 'WAITING_ROLL';
       this.diceValue = null;
       this.validMoves = [];
+      this.turnStartTime = Date.now();
     } else {
       this.phase = 'WAITING_ROLL';
       this.diceValue = null;
@@ -163,6 +166,7 @@ export class OfflineLudoEngine {
     this.phase = 'WAITING_ROLL';
     this.diceValue = null;
     this.validMoves = [];
+    this.turnStartTime = Date.now();
   }
 
   getState() {
@@ -185,7 +189,9 @@ export class OfflineLudoEngine {
       phase: this.phase,
       validMoves: this.validMoves,
       winner: this.winner,
-      rankingsList: this.rankingsList
+      rankingsList: this.rankingsList,
+      turnTimeoutMs: this.turnTimeoutMs || 60000,
+      turnStartTime: this.turnStartTime || Date.now()
     };
   }
 }

@@ -40,7 +40,8 @@ class GameManager {
       winner: null,
       rankingsList: [],
       turnTimer: null,
-      turnTimeoutMs: 25000, // 25s auto-turn timer
+      turnTimeoutMs: 60000, // 1 minute auto-turn timer
+      turnStartTime: Date.now(),
       moveHistory: [],
       createdAt: new Date()
     };
@@ -253,6 +254,7 @@ class GameManager {
     game.phase = 'WAITING_ROLL';
     game.diceValue = null;
     game.validMoves = [];
+    game.turnStartTime = Date.now();
   }
 
   async persistGameResults(game) {
@@ -305,7 +307,9 @@ class GameManager {
       phase: game.phase,
       validMoves: game.validMoves,
       winner: game.winner,
-      rankingsList: game.rankingsList
+      rankingsList: game.rankingsList,
+      turnTimeoutMs: game.turnTimeoutMs || 60000,
+      turnStartTime: game.turnStartTime || Date.now()
     };
   }
 }

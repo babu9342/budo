@@ -1,21 +1,23 @@
 import React from 'react';
 import Token from './Token';
 import { getGlobalPosition } from '../game/rules';
+import { BOARD_THEMES } from '../game/boardThemes';
 
 export default function LudoBoard({
   gameState,
   onSelectToken,
-  validTokens = []
+  validTokens = [],
+  themeName = 'classic'
 }) {
   if (!gameState) return null;
 
+  const currentTheme = BOARD_THEMES[themeName] || BOARD_THEMES.classic;
   const playerCount = gameState.players.length;
   const config = gameState.config;
 
-  // Identify token positions and stacking
-  // Map of globalPos -> Array of { playerIndex, tokenId, color, isCurrentTurn }
+  // Map of globalPos -> Array of token objects
   const cellOccupants = {};
-  // Home bases: playerIndex -> Array of { tokenId, color }
+  // Home bases: playerIndex -> Array of { tokenId, color, isValid, step, playerIndex }
   const homeBases = Array.from({ length: playerCount }, () => []);
   // Finish base: Array of { playerIndex, tokenId, color }
   const finishOccupants = [];
@@ -34,6 +36,7 @@ export default function LudoBoard({
       };
 
       if (step === -1) {
+        if (!homeBases[pIdx]) homeBases[pIdx] = [];
         homeBases[pIdx].push(tokenObj);
       } else if (step >= config.totalStepsToFinish) {
         finishOccupants.push(tokenObj);
@@ -49,9 +52,9 @@ export default function LudoBoard({
   return (
     <div className="w-full flex items-center justify-center p-1 sm:p-2 select-none">
       <div 
-        className="w-[min(94vw,540px)] aspect-square bg-slate-900/90 rounded-2xl p-1.5 md:p-2 border-2 border-slate-700 shadow-2xl relative overflow-hidden backdrop-blur-md"
+        className={`w-[min(94vw,540px)] aspect-square ${currentTheme.boardBg} rounded-3xl p-1.5 md:p-2.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative overflow-hidden backdrop-blur-xl transition-colors duration-500`}
         style={{
-          boxShadow: '0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.05)'
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.04)'
         }}
       >
         {playerCount <= 4 ? (
@@ -61,6 +64,7 @@ export default function LudoBoard({
             homeBases={homeBases}
             finishOccupants={finishOccupants}
             onSelectToken={onSelectToken}
+            theme={currentTheme}
           />
         ) : (
           <RadialMultiPlayerBoard
@@ -70,6 +74,7 @@ export default function LudoBoard({
             finishOccupants={finishOccupants}
             onSelectToken={onSelectToken}
             playerCount={playerCount}
+            theme={currentTheme}
           />
         )}
       </div>
@@ -78,17 +83,16 @@ export default function LudoBoard({
 }
 
 /**
- * Standard 15x15 Classical Ludo Board for 2 and 4 Players
+ * Standard 15x15 Classical Ludo Board for 2, 3, and 4 Players
  */
 function Classic4PlayerBoard({
   gameState,
   cellOccupants,
   homeBases,
   finishOccupants,
-  onSelectToken
+  onSelectToken,
+  theme
 }) {
-  // Grid 15x15 cell coordinates to standard Ludo Track indexing
-  // Standard 52 Track cells mapped to 15x15 grid coordinates [row, col] (0-indexed)
   const trackCoordMap = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], // 0-4 (Red start at 0 is [6,1])
     [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6], // 5-10
@@ -105,63 +109,76 @@ function Classic4PlayerBoard({
     [6, 0] // 51
   ];
 
-  // Home stretch runways (5 steps each)
   const homeStretchMap = {
-    0: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], // Red
-    1: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]], // Green
-    2: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], // Yellow
-    3: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]]  // Blue
+    red: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]],
+    green: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],
+    yellow: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]],
+    blue: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]]
   };
 
   const safeTrackIndices = [0, 8, 13, 21, 26, 34, 39, 47];
 
+  // Resolve players mapped strictly to their matching home color yard
+  const redPlayer = gameState.players.find(p => p.color?.key === 'red');
+  const greenPlayer = gameState.players.find(p => p.color?.key === 'green');
+  const yellowPlayer = gameState.players.find(p => p.color?.key === 'yellow');
+  const bluePlayer = gameState.players.find(p => p.color?.key === 'blue');
+
+  const redTokens = redPlayer ? (homeBases[redPlayer.playerIndex] || []) : [];
+  const greenTokens = greenPlayer ? (homeBases[greenPlayer.playerIndex] || []) : [];
+  const yellowTokens = yellowPlayer ? (homeBases[yellowPlayer.playerIndex] || []) : [];
+  const blueTokens = bluePlayer ? (homeBases[bluePlayer.playerIndex] || []) : [];
+
   return (
-    <div className="w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] bg-slate-800 rounded-xl overflow-hidden p-0.5 border border-slate-700">
+    <div className={`w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] ${theme.gridBg} rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder}`}>
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
-      <div className="col-span-6 row-span-6 bg-red-600/90 rounded-tl-lg p-2 flex items-center justify-center border border-red-500/40 relative">
+      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
         <HomeYard
-          colorHex="#EF4444"
+          colorHex={redPlayer?.color?.hex || '#EF4444'}
           colorName="Red"
-          player={gameState.players[0]}
-          tokens={homeBases[0] || []}
+          player={redPlayer}
+          tokens={redTokens}
           onSelectToken={onSelectToken}
+          theme={theme}
         />
       </div>
 
       {/* 2. TOP-MIDDLE: Top Runway Track (rows 0-5, cols 6-8) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-900">
-        {renderSubGrid(0, 5, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken)}
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-950/60">
+        {renderSubGrid(0, 5, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
-      <div className="col-span-6 row-span-6 bg-emerald-600/90 rounded-tr-lg p-2 flex items-center justify-center border border-emerald-500/40 relative">
+      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
         <HomeYard
-          colorHex="#10B981"
+          colorHex={greenPlayer?.color?.hex || '#10B981'}
           colorName="Green"
-          player={gameState.players[1]}
-          tokens={homeBases[1] || []}
+          player={greenPlayer}
+          tokens={greenTokens}
           onSelectToken={onSelectToken}
+          theme={theme}
         />
       </div>
 
       {/* 4. MIDDLE-LEFT: Left Runway Track (rows 6-8, cols 0-5) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-900">
-        {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken)}
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-950/60">
+        {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
-      {/* 5. CENTER: Finish Victory Triangle (rows 6-8, cols 6-8) */}
-      <div className="col-span-3 row-span-3 bg-slate-950 relative flex items-center justify-center border border-amber-400/40 shadow-inner">
-        {/* Triangular colored finish wedges */}
+      {/* 5. CENTER: Finish Victory Triangles (rows 6-8, cols 6-8) */}
+      <div className="col-span-3 row-span-3 bg-slate-950 relative flex items-center justify-center border border-amber-400/50 shadow-inner overflow-hidden">
         <div className="absolute inset-0">
-          <svg className="w-full h-full" viewBox="0 0 100 100">
-            <polygon points="0,0 50,50 0,100" fill="#EF4444" opacity="0.85" />
-            <polygon points="0,0 50,50 100,0" fill="#10B981" opacity="0.85" />
-            <polygon points="100,0 50,50 100,100" fill="#F59E0B" opacity="0.85" />
-            <polygon points="0,100 50,50 100,100" fill="#3B82F6" opacity="0.85" />
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity="0.9" />
+            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity="0.9" />
+            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity="0.9" />
+            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity="0.9" />
           </svg>
         </div>
+        {/* Center Glow Hub */}
+        <div className="absolute w-6 h-6 rounded-full bg-slate-950/80 border border-amber-300 flex items-center justify-center shadow-lg z-0"></div>
         {/* Finish Tokens Stack */}
-        <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1">
+        <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1 max-w-[85%] max-h-[85%] overflow-hidden">
           {finishOccupants.map((t, idx) => (
             <Token
               key={`fin_${idx}`}
@@ -171,40 +188,42 @@ function Classic4PlayerBoard({
             />
           ))}
           {finishOccupants.length === 0 && (
-            <span className="text-amber-300 text-xs font-black drop-shadow">🏆</span>
+            <span className="text-amber-300 text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">🏆</span>
           )}
         </div>
       </div>
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-900">
-        {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken)}
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-950/60">
+        {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
-      <div className="col-span-6 row-span-6 bg-blue-600/90 rounded-bl-lg p-2 flex items-center justify-center border border-blue-500/40 relative">
+      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
         <HomeYard
-          colorHex="#3B82F6"
+          colorHex={bluePlayer?.color?.hex || '#3B82F6'}
           colorName="Blue"
-          player={gameState.players[3] || gameState.players[1]}
-          tokens={homeBases[3] || []}
+          player={bluePlayer}
+          tokens={blueTokens}
           onSelectToken={onSelectToken}
+          theme={theme}
         />
       </div>
 
       {/* 8. BOTTOM-MIDDLE: Bottom Runway Track (rows 9-14, cols 6-8) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-900">
-        {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken)}
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-950/60">
+        {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
-      <div className="col-span-6 row-span-6 bg-amber-500/90 rounded-br-lg p-2 flex items-center justify-center border border-amber-400/40 relative">
+      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
         <HomeYard
-          colorHex="#F59E0B"
+          colorHex={yellowPlayer?.color?.hex || '#F59E0B'}
           colorName="Yellow"
-          player={gameState.players[2] || gameState.players[1]}
-          tokens={homeBases[2] || []}
+          player={yellowPlayer}
+          tokens={yellowTokens}
           onSelectToken={onSelectToken}
+          theme={theme}
         />
       </div>
     </div>
@@ -214,28 +233,35 @@ function Classic4PlayerBoard({
 /**
  * Renders Home Base Yard Box with 4 Token Slots
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken }) {
+function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme }) {
   if (!player) {
-    return <div className="text-white/30 text-xs font-semibold">Vacant</div>;
+    return (
+      <div className="w-full h-full bg-slate-950/70 rounded-xl flex flex-col items-center justify-center border border-white/5 opacity-40">
+        <span className="text-[10px] uppercase font-bold text-slate-400">Vacant</span>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full h-full bg-slate-900/80 rounded-xl p-2 md:p-3 flex flex-col items-center justify-between border-2 border-white/20 shadow-inner">
-      <div className="w-full flex items-center justify-between">
-        <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-white drop-shadow">
-          {player.username?.substring(0, 8)}
+    <div className="w-full h-full bg-slate-950/85 rounded-xl p-1.5 md:p-2.5 flex flex-col items-center justify-between border-2 border-white/20 shadow-inner">
+      <div className="w-full flex items-center justify-between px-0.5">
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[70%]">
+          {player.username}
         </span>
-        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colorHex }}></span>
+        <span
+          className="w-2.5 h-2.5 rounded-full ring-2 ring-white/30 shadow-md"
+          style={{ backgroundColor: colorHex }}
+        ></span>
       </div>
 
       {/* 4 Token Bases */}
-      <div className="grid grid-cols-2 gap-2 md:gap-3 p-1">
+      <div className="grid grid-cols-2 gap-1.5 md:gap-2.5 p-0.5">
         {[0, 1, 2, 3].map((slotIdx) => {
           const token = tokens.find(t => t.tokenId === slotIdx);
           return (
             <div
               key={slotIdx}
-              className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center shadow-inner relative"
+              className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-slate-900 border-2 border-slate-700/80 flex items-center justify-center shadow-inner relative"
             >
               {token && (
                 <Token
@@ -254,50 +280,64 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken }) {
 }
 
 /**
- * Sub-Grid Track Cell Builder
+ * Sub-Grid Track Cell Builder with Theme support and precise home stretch mapping
  */
 function renderSubGrid(
   rStart, rEnd, cStart, cEnd,
-  trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken
+  trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, players
 ) {
   const cells = [];
   for (let r = rStart; r <= rEnd; r++) {
     for (let c = cStart; c <= cEnd; c++) {
-      // 1. Check if track cell
       const trackIdx = trackCoordMap.findIndex(coord => coord[0] === r && coord[1] === c);
       let isHomeStretch = false;
-      let homeStretchColor = null;
+      let homeStretchColorKey = null;
       let homeStretchIdx = null;
 
-      // Check home stretch
-      for (const [pIdx, stretchArr] of Object.entries(homeStretchMap)) {
+      // Check home stretch for each color
+      for (const [colorKey, stretchArr] of Object.entries(homeStretchMap)) {
         const sIdx = stretchArr.findIndex(coord => coord[0] === r && coord[1] === c);
         if (sIdx >= 0) {
           isHomeStretch = true;
-          homeStretchColor = pIdx;
+          homeStretchColorKey = colorKey;
           homeStretchIdx = sIdx;
           break;
         }
       }
 
+      // Map colorKey to player index for home stretch occupants
+      let cellKey;
+      if (isHomeStretch) {
+        const matchingPlayer = players.find(p => p.color?.key === homeStretchColorKey);
+        const pIdx = matchingPlayer ? matchingPlayer.playerIndex : -99;
+        cellKey = `HOME_STRETCH_${pIdx}_${homeStretchIdx}`;
+      } else {
+        cellKey = `track_${trackIdx}`;
+      }
+
       const isSafe = trackIdx >= 0 && safeTrackIndices.includes(trackIdx);
-      const cellKey = isHomeStretch ? `HOME_STRETCH_${homeStretchColor}_${homeStretchIdx}` : `track_${trackIdx}`;
       const occupants = cellOccupants[cellKey] || [];
 
-      let bgClass = 'bg-slate-900 border-slate-800';
+      let bgClass = theme.cellBg;
+      let markerText = null;
+
       if (isHomeStretch) {
-        if (homeStretchColor === '0') bgClass = 'bg-red-600/60 border-red-500/40';
-        if (homeStretchColor === '1') bgClass = 'bg-emerald-600/60 border-emerald-500/40';
-        if (homeStretchColor === '2') bgClass = 'bg-amber-500/60 border-amber-400/40';
-        if (homeStretchColor === '3') bgClass = 'bg-blue-600/60 border-blue-500/40';
+        if (homeStretchColorKey === 'red') bgClass = theme.redStretch;
+        else if (homeStretchColorKey === 'green') bgClass = theme.greenStretch;
+        else if (homeStretchColorKey === 'yellow') bgClass = theme.yellowStretch;
+        else if (homeStretchColorKey === 'blue') bgClass = theme.blueStretch;
       } else if (trackIdx === 0) {
-        bgClass = 'bg-red-500/30 border-red-500/60';
+        bgClass = theme.redStart;
+        markerText = '▶';
       } else if (trackIdx === 13) {
-        bgClass = 'bg-emerald-500/30 border-emerald-500/60';
+        bgClass = theme.greenStart;
+        markerText = '▼';
       } else if (trackIdx === 26) {
-        bgClass = 'bg-amber-500/30 border-amber-500/60';
+        bgClass = theme.yellowStart;
+        markerText = '◀';
       } else if (trackIdx === 39) {
-        bgClass = 'bg-blue-500/30 border-blue-500/60';
+        bgClass = theme.blueStart;
+        markerText = '▲';
       }
 
       cells.push(
@@ -307,7 +347,12 @@ function renderSubGrid(
         >
           {/* Safe Star Indicator */}
           {isSafe && occupants.length === 0 && (
-            <span className="text-[9px] text-amber-400 font-bold opacity-80 select-none">★</span>
+            <span className={`text-[10px] md:text-xs font-black select-none ${theme.starColor}`}>★</span>
+          )}
+
+          {/* Starting Arrow Indicator (if safe star not present) */}
+          {!isSafe && markerText && occupants.length === 0 && (
+            <span className="text-[9px] font-bold text-white/50 select-none">{markerText}</span>
           )}
 
           {/* Occupant Tokens */}
@@ -342,14 +387,13 @@ function RadialMultiPlayerBoard({
   homeBases,
   finishOccupants,
   onSelectToken,
-  playerCount
+  playerCount,
+  theme
 }) {
-  const config = gameState.config;
-
   return (
     <div className="w-full h-full relative flex items-center justify-center p-2">
       {/* Central Finish Hub */}
-      <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-slate-950 border-4 border-amber-400/80 shadow-2xl flex flex-col items-center justify-center z-20 p-1">
+      <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-slate-950 border-4 border-amber-400/90 shadow-2xl flex flex-col items-center justify-center z-20 p-1">
         <span className="text-amber-400 text-xs font-black uppercase tracking-wider">BUDO</span>
         <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
           {finishOccupants.map((t, idx) => (
@@ -364,7 +408,7 @@ function RadialMultiPlayerBoard({
       {/* Radial Players Yards & Track Spokes */}
       {gameState.players.map((player, pIdx) => {
         const angle = (pIdx * (360 / playerCount)) * (Math.PI / 180);
-        const radius = 38; // percentage from center
+        const radius = 37;
         const x = 50 + radius * Math.cos(angle);
         const y = 50 + radius * Math.sin(angle);
 
@@ -375,10 +419,10 @@ function RadialMultiPlayerBoard({
             style={{ left: `${x}%`, top: `${y}%` }}
           >
             <div 
-              className="p-1.5 md:p-2 rounded-xl bg-slate-900/90 border-2 shadow-lg flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20"
+              className="p-1.5 md:p-2 rounded-2xl bg-slate-950/90 border-2 shadow-xl flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20"
               style={{ borderColor: player.color.hex }}
             >
-              <span className="text-[9px] font-bold text-white truncate max-w-[50px]">
+              <span className="text-[9px] font-black text-white truncate max-w-[50px]">
                 {player.username}
               </span>
               <div className="grid grid-cols-2 gap-1 mt-1">
