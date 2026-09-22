@@ -326,50 +326,90 @@ function Classic4PlayerBoard({
 }
 
 /**
- * Renders Home Base Yard Box with 4 Token Slots
+ * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots
  */
 function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme }) {
   if (!player) {
     return (
-      <div className="w-full h-full bg-slate-950/70 rounded-xl flex flex-col items-center justify-center border border-white/5 opacity-40">
+      <div className="w-full h-full bg-slate-950/40 rounded-xl flex flex-col items-center justify-center border border-white/10">
         <span className="text-[10px] uppercase font-bold text-slate-400">Vacant</span>
       </div>
     );
   }
 
+  const isFlatMinimal = theme.isFlatMinimal;
+  const isFestive = theme.isFestive;
+
   return (
-    <div className="w-full h-full bg-slate-950/85 rounded-xl p-1.5 md:p-2.5 flex flex-col items-center justify-between border-2 border-white/20 shadow-inner">
-      <div className="w-full flex items-center justify-between px-0.5">
-        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[70%]">
+    <div className="w-full h-full rounded-xl p-1.5 md:p-2 flex flex-col items-center justify-between relative overflow-hidden">
+      {/* Festive Corner Ornament */}
+      {isFestive && (
+        <div className="absolute top-1 left-1 text-[12px] opacity-70 select-none">
+          🪷
+        </div>
+      )}
+
+      {/* Header with Username & Status */}
+      <div className="w-full flex items-center justify-between px-1 z-10">
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[75%]">
           {player.username}
         </span>
         <span
-          className="w-2.5 h-2.5 rounded-full ring-2 ring-white/30 shadow-md"
+          className="w-2.5 h-2.5 rounded-full ring-2 ring-white/60 shadow-sm"
           style={{ backgroundColor: colorHex }}
         ></span>
       </div>
 
-      {/* 4 Token Bases */}
-      <div className="grid grid-cols-2 gap-1.5 md:gap-2.5 p-0.5">
-        {[0, 1, 2, 3].map((slotIdx) => {
-          const token = tokens.find(t => t.tokenId === slotIdx);
-          return (
-            <div
-              key={slotIdx}
-              className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-slate-900 border-2 border-slate-700/80 flex items-center justify-center shadow-inner relative"
-            >
-              {token && (
-                <Token
-                  color={token.color}
-                  isValidMove={token.isValid}
-                  isHopping={token.isHopping}
-                  onClick={() => onSelectToken(token.tokenId)}
-                  size="md"
-                />
-              )}
-            </div>
-          );
-        })}
+      {/* Classic Inset White Square with Diamond Pips */}
+      <div className="w-[82%] aspect-square bg-white rounded-lg shadow-md border border-black/10 flex items-center justify-center relative p-1">
+        {/* Rotated Diamond Background */}
+        <div
+          className="w-[74%] aspect-square rounded-md rotate-45 border-2 flex items-center justify-center transition-all"
+          style={{
+            borderColor: colorHex,
+            backgroundColor: isFlatMinimal ? `${colorHex}15` : `${colorHex}25`
+          }}
+        ></div>
+
+        {/* 4 Token Bases in 2x2 Dice Pip Grid */}
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+          {[0, 1, 2, 3].map((slotIdx) => {
+            const token = tokens.find(t => t.tokenId === slotIdx);
+            return (
+              <div
+                key={slotIdx}
+                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
+                style={{
+                  backgroundColor: isFlatMinimal ? '#FFFFFF' : '#F8FAFC',
+                  borderColor: colorHex
+                }}
+              >
+                {/* Empty slot pip dot */}
+                {!token && (
+                  <div
+                    className="w-2.5 h-2.5 rounded-full opacity-60"
+                    style={{ backgroundColor: colorHex }}
+                  ></div>
+                )}
+                {/* Token */}
+                {token && (
+                  <Token
+                    color={token.color}
+                    isValidMove={token.isValid}
+                    isHopping={token.isHopping}
+                    onClick={() => onSelectToken(token.tokenId)}
+                    size="sm"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom spacer / subtle label */}
+      <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest drop-shadow-sm select-none">
+        {colorName}
       </div>
     </div>
   );
