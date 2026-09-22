@@ -8,7 +8,8 @@ export default function LudoBoard({
   gameState,
   onSelectToken,
   validTokens = [],
-  themeName = 'classic'
+  themeName = 'classic',
+  moveTimer = null
 }) {
   if (!gameState) return null;
 
@@ -168,33 +169,99 @@ export default function LudoBoard({
 
   return (
     <div className="w-full flex items-center justify-center p-1 sm:p-2 select-none">
-      <div 
-        className={`w-[min(94vw,540px)] aspect-square ${currentTheme.boardBg} rounded-3xl p-1.5 md:p-2.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative overflow-hidden backdrop-blur-xl transition-colors duration-500`}
-        style={{
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.04)'
-        }}
-      >
-        {playerCount <= 4 ? (
-          <Classic4PlayerBoard
-            gameState={gameState}
-            cellOccupants={cellOccupants}
-            homeBases={homeBases}
-            finishOccupants={finishOccupants}
-            onSelectToken={onSelectToken}
-            theme={currentTheme}
-          />
-        ) : (
-          <RadialMultiPlayerBoard
-            gameState={gameState}
-            cellOccupants={cellOccupants}
-            homeBases={homeBases}
-            finishOccupants={finishOccupants}
-            onSelectToken={onSelectToken}
-            playerCount={playerCount}
-            theme={currentTheme}
-          />
-        )}
-      </div>
+      {/* Pachisi Heritage: Ornate outer temple frame */}
+      {currentTheme.isPachisi ? (
+        <div className="relative w-[min(96vw,560px)] aspect-square flex items-center justify-center">
+          {/* Decorative SVG vine border overlay */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 560 560" preserveAspectRatio="xMidYMid meet">
+            {/* Outer maroon frame */}
+            <rect x="2" y="2" width="556" height="556" rx="18" ry="18" fill="none" stroke="#5C2A00" strokeWidth="10" />
+            <rect x="8" y="8" width="544" height="544" rx="14" ry="14" fill="none" stroke="#A0522D" strokeWidth="3" />
+            <rect x="14" y="14" width="532" height="532" rx="10" ry="10" fill="none" stroke="#D4A017" strokeWidth="1.5" />
+            {/* Corner lotus ornaments */}
+            {[[28,28],[532,28],[28,532],[532,532]].map(([cx,cy], i) => (
+              <g key={i} transform={`translate(${cx},${cy})`}>
+                <circle r="12" fill="#8B4513" opacity="0.9" />
+                <circle r="8" fill="#D4A017" opacity="0.9" />
+                <circle r="4" fill="#FAF0DC" opacity="1" />
+                {[0,60,120,180,240,300].map((angle, j) => (
+                  <ellipse key={j} cx={Math.cos(angle*Math.PI/180)*9} cy={Math.sin(angle*Math.PI/180)*9}
+                    rx="4" ry="2.5" fill="#C0392B" opacity="0.8"
+                    transform={`rotate(${angle},${Math.cos(angle*Math.PI/180)*9},${Math.sin(angle*Math.PI/180)*9})`} />
+                ))}
+              </g>
+            ))}
+            {/* Top/Bottom vine dividers */}
+            {[0, 1].map(side => (
+              <g key={side} transform={side === 1 ? 'translate(0,560) scale(1,-1)' : ''}>
+                {[80,160,240,320,400,480].map((x, i) => (
+                  <g key={i}>
+                    <ellipse cx={x} cy="10" rx="12" ry="5" fill="#8B4513" opacity="0.5" />
+                    <circle cx={x} cy="10" r="3" fill="#D4A017" opacity="0.7" />
+                  </g>
+                ))}
+              </g>
+            ))}
+            {/* Left/Right vine dividers */}
+            {[0, 1].map(side => (
+              <g key={side} transform={side === 1 ? 'translate(560,0) scale(-1,1)' : ''}>
+                {[80,160,240,320,400,480].map((y, i) => (
+                  <g key={i}>
+                    <ellipse cx="10" cy={y} rx="5" ry="12" fill="#8B4513" opacity="0.5" />
+                    <circle cx="10" cy={y} r="3" fill="#D4A017" opacity="0.7" />
+                  </g>
+                ))}
+              </g>
+            ))}
+          </svg>
+
+          {/* Actual Board */}
+          <div
+            className={`w-[min(84vw,480px)] aspect-square ${currentTheme.boardBg} rounded-2xl p-2 border-4 shadow-2xl relative overflow-hidden transition-colors duration-500`}
+            style={{ borderColor: '#8B4513', boxShadow: '0 8px 40px rgba(92,42,0,0.7), inset 0 0 20px rgba(212,160,23,0.08)' }}
+          >
+            <Classic4PlayerBoard
+              gameState={gameState}
+              cellOccupants={cellOccupants}
+              homeBases={homeBases}
+              finishOccupants={finishOccupants}
+              onSelectToken={onSelectToken}
+              theme={currentTheme}
+              moveTimer={moveTimer}
+            />
+          </div>
+        </div>
+      ) : (
+        <div 
+          className={`w-[min(94vw,540px)] aspect-square ${currentTheme.boardBg} rounded-3xl p-1.5 md:p-2.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative overflow-hidden backdrop-blur-xl transition-colors duration-500`}
+          style={{
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.04)'
+          }}
+        >
+          {playerCount <= 4 ? (
+            <Classic4PlayerBoard
+              gameState={gameState}
+              cellOccupants={cellOccupants}
+              homeBases={homeBases}
+              finishOccupants={finishOccupants}
+              onSelectToken={onSelectToken}
+              theme={currentTheme}
+              moveTimer={moveTimer}
+            />
+          ) : (
+            <RadialMultiPlayerBoard
+              gameState={gameState}
+              cellOccupants={cellOccupants}
+              homeBases={homeBases}
+              finishOccupants={finishOccupants}
+              onSelectToken={onSelectToken}
+              playerCount={playerCount}
+              theme={currentTheme}
+              moveTimer={moveTimer}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -208,7 +275,8 @@ function Classic4PlayerBoard({
   homeBases,
   finishOccupants,
   onSelectToken,
-  theme
+  theme,
+  moveTimer
 }) {
   const trackCoordMap = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], // 0-4 (Red start at 0 is [6,1])
@@ -246,10 +314,20 @@ function Classic4PlayerBoard({
   const yellowTokens = yellowPlayer ? (homeBases[yellowPlayer.playerIndex] || []) : [];
   const blueTokens = bluePlayer ? (homeBases[bluePlayer.playerIndex] || []) : [];
 
+  const gapBg = theme.isPachisi ? '#A0522D' : theme.isDarkMode ? '#2a2a2a' : '#94a3b8';
+
   return (
-    <div className={`w-full h-full grid grid-cols-15 grid-rows-15 gap-[1px] ${theme.gridBg} rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder}`}>
+    <div
+      className={`w-full h-full grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder}`}
+      style={{ gap: '1px', backgroundColor: gapBg }}
+    >
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
+      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
+        style={theme.isPachisi ? { borderColor: '#7F1D1D' } : {}}>
+        {/* Pachisi: corner flourish */}
+        {theme.isPachisi && (
+          <div className="absolute top-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
+        )}
         <HomeYard
           colorHex={redPlayer?.color?.hex || '#EF4444'}
           colorName="Red"
@@ -257,16 +335,22 @@ function Classic4PlayerBoard({
           tokens={redTokens}
           onSelectToken={onSelectToken}
           theme={theme}
+          isCurrentTurn={gameState.currentTurnIndex === redPlayer?.playerIndex}
+          moveTimer={moveTimer}
         />
       </div>
 
       {/* 2. TOP-MIDDLE: Top Runway Track (rows 0-5, cols 6-8) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-950/60">
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(0, 5, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
+      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
+        style={theme.isPachisi ? { borderColor: '#14532D' } : {}}>
+        {theme.isPachisi && (
+          <div className="absolute top-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
+        )}
         <HomeYard
           colorHex={greenPlayer?.color?.hex || '#10B981'}
           colorName="Green"
@@ -274,52 +358,87 @@ function Classic4PlayerBoard({
           tokens={greenTokens}
           onSelectToken={onSelectToken}
           theme={theme}
+          isCurrentTurn={gameState.currentTurnIndex === greenPlayer?.playerIndex}
+          moveTimer={moveTimer}
         />
       </div>
 
       {/* 4. MIDDLE-LEFT: Left Runway Track (rows 6-8, cols 0-5) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-950/60">
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 5. CENTER: Finish Victory Triangles (rows 6-8, cols 6-8) */}
-      <div className="col-span-3 row-span-3 bg-[#0d0d0d] relative flex items-center justify-center border border-amber-400/50 shadow-2xl overflow-hidden">
-        {/* Subtle Radial Glow Focal Point */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.28)_0%,transparent_75%)] pointer-events-none z-0"></div>
+      <div
+        className="col-span-3 row-span-3 relative flex items-center justify-center shadow-2xl overflow-hidden"
+        style={theme.isPachisi
+          ? { backgroundColor: '#FAF0DC', border: '2px solid #8B4513' }
+          : { backgroundColor: '#0d0d0d', border: '1px solid rgba(251,191,36,0.5)' }}
+      >
+        {/* Radial Glow */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: theme.isPachisi
+              ? 'radial-gradient(circle at center, rgba(212,160,23,0.25) 0%, transparent 70%)'
+              : 'radial-gradient(circle at center, rgba(251,191,36,0.28) 0%, transparent 75%)'
+          }}
+        />
+        {/* Pinwheel Triangles */}
         <div className="absolute inset-0">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity="0.95" />
-            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity="0.95" />
-            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity="0.95" />
-            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity="0.95" />
+            {/* Red: left */}
+            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity={theme.isPachisi ? '1' : '0.95'} />
+            {/* Green: top */}
+            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity={theme.isPachisi ? '1' : '0.95'} />
+            {/* Yellow: right */}
+            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity={theme.isPachisi ? '1' : '0.95'} />
+            {/* Blue: bottom */}
+            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity={theme.isPachisi ? '1' : '0.95'} />
+            {/* Pachisi: white dividing lines for traditional look */}
+            {theme.isPachisi && (
+              <>
+                <line x1="0" y1="0" x2="50" y2="50" stroke="#FAF0DC" strokeWidth="1.5" />
+                <line x1="100" y1="0" x2="50" y2="50" stroke="#FAF0DC" strokeWidth="1.5" />
+                <line x1="100" y1="100" x2="50" y2="50" stroke="#FAF0DC" strokeWidth="1.5" />
+                <line x1="0" y1="100" x2="50" y2="50" stroke="#FAF0DC" strokeWidth="1.5" />
+              </>
+            )}
           </svg>
         </div>
-        {/* Center Glow Hub */}
-        <div className="absolute w-6 h-6 rounded-full bg-black/90 border border-amber-300 flex items-center justify-center shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0"></div>
+        {/* Center Hub */}
+        {theme.isPachisi ? (
+          <div className="absolute w-7 h-7 rounded-full flex items-center justify-center z-10"
+            style={{ backgroundColor: '#FAF0DC', border: '2.5px solid #8B4513', boxShadow: '0 0 10px rgba(139,69,19,0.6)' }}>
+            <span className="text-[10px]">✦</span>
+          </div>
+        ) : (
+          <div className="absolute w-6 h-6 rounded-full bg-black/90 border border-amber-300 flex items-center justify-center shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0" />
+        )}
         {/* Finish Tokens Stack */}
         <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1 max-w-[85%] max-h-[85%] overflow-hidden">
           {finishOccupants.map((t, idx) => (
-            <Token
-              key={`fin_${idx}`}
-              color={t.color}
-              size="sm"
-              isCaptured={t.isCaptured}
-              stackCount={1}
-            />
+            <Token key={`fin_${idx}`} color={t.color} size="sm" isCaptured={t.isCaptured} stackCount={1} />
           ))}
           {finishOccupants.length === 0 && (
-            <span className="text-amber-300 text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">🏆</span>
+            <span className={`text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${
+              theme.isPachisi ? 'text-[#8B4513]' : 'text-amber-300'
+            }`}>{theme.isPachisi ? '🪔' : '🏆'}</span>
           )}
         </div>
       </div>
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-[#2a2a2a]">
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
+      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
+        style={theme.isPachisi ? { borderColor: '#1E3A8A' } : {}}>
+        {theme.isPachisi && (
+          <div className="absolute bottom-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
+        )}
         <HomeYard
           colorHex={bluePlayer?.color?.hex || '#3B82F6'}
           colorName="Blue"
@@ -327,16 +446,22 @@ function Classic4PlayerBoard({
           tokens={blueTokens}
           onSelectToken={onSelectToken}
           theme={theme}
+          isCurrentTurn={gameState.currentTurnIndex === bluePlayer?.playerIndex}
+          moveTimer={moveTimer}
         />
       </div>
 
       {/* 8. BOTTOM-MIDDLE: Bottom Runway Track (rows 9-14, cols 6-8) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-[#2a2a2a]">
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border relative transition-all duration-300`}>
+      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
+        style={theme.isPachisi ? { borderColor: '#78350F' } : {}}>
+        {theme.isPachisi && (
+          <div className="absolute bottom-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
+        )}
         <HomeYard
           colorHex={yellowPlayer?.color?.hex || '#F59E0B'}
           colorName="Yellow"
@@ -344,6 +469,8 @@ function Classic4PlayerBoard({
           tokens={yellowTokens}
           onSelectToken={onSelectToken}
           theme={theme}
+          isCurrentTurn={gameState.currentTurnIndex === yellowPlayer?.playerIndex}
+          moveTimer={moveTimer}
         />
       </div>
     </div>
@@ -351,47 +478,146 @@ function Classic4PlayerBoard({
 }
 
 /**
- * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots
+ * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
+ * For Pachisi theme: ornate ivory inner square with colored border and larger token circles.
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme }) {
+function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer }) {
   if (!player) {
     return (
-      <div className="w-full h-full bg-slate-950/40 rounded-xl flex flex-col items-center justify-center border border-white/10">
-        <span className="text-[10px] uppercase font-bold text-slate-400">Vacant</span>
+      <div className="w-full h-full rounded-xl flex flex-col items-center justify-center"
+        style={theme.isPachisi
+          ? { backgroundColor: 'rgba(250,240,220,0.4)', border: '1px solid rgba(160,82,45,0.4)' }
+          : { backgroundColor: 'rgba(2,6,23,0.4)', border: '1px solid rgba(255,255,255,0.1)' }
+        }>
+        <span className={`text-[10px] uppercase font-bold ${ theme.isPachisi ? 'text-[#8B4513]' : 'text-slate-400' }`}>Vacant</span>
       </div>
     );
   }
 
-  const isFlatMinimal = theme.isFlatMinimal;
   const isFestive = theme.isFestive;
   const isDarkMode = theme.isDarkMode;
+  const isPachisi = theme.isPachisi;
+  const isMoveTimerActive = isCurrentTurn && moveTimer?.active;
+  const moveSeconds = moveTimer ? moveTimer.seconds : 6;
+  const movePercent = moveTimer ? Math.max(0, (moveTimer.seconds / (moveTimer.total || 6)) * 100) : 100;
 
+  if (isPachisi) {
+    /* ── Pachisi Heritage HomeYard ─────────────────────────────────── */
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-between relative p-1">
+        {/* Username badge */}
+        <div className="w-full flex items-center justify-between px-0.5 z-10">
+          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
+            {player.username}
+          </span>
+          {isMoveTimerActive ? (
+            <span
+              className="text-[8px] md:text-[9px] font-mono font-black px-1 py-0.5 rounded-full text-white animate-pulse"
+              style={{ backgroundColor: colorHex }}
+            >⏱️ {moveSeconds}s</span>
+          ) : (
+            <span className="w-2 h-2 rounded-full ring-1 ring-white/60" style={{ backgroundColor: colorHex }} />
+          )}
+        </div>
+
+        {/* Ivory inner square with thick colored border */}
+        <div
+          className="w-[84%] aspect-square flex items-center justify-center relative shadow-lg"
+          style={{
+            backgroundColor: '#FAF0DC',
+            border: `3px solid ${colorHex}`,
+            boxShadow: `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
+            borderRadius: '6px'
+          }}
+        >
+          {/* Inner decorative ring */}
+          <div
+            className="absolute inset-[6px]"
+            style={{
+              border: '1.5px solid rgba(139,69,19,0.4)',
+              borderRadius: '4px',
+              pointerEvents: 'none'
+            }}
+          />
+          {/* 2x2 token circles grid */}
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+            {[0, 1, 2, 3].map((slotIdx) => {
+              const token = tokens.find(t => t.tokenId === slotIdx);
+              return (
+                <div
+                  key={slotIdx}
+                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border-2 transition-transform"
+                  style={{ backgroundColor: '#FAF0DC', borderColor: colorHex }}
+                >
+                  {!token && (
+                    <div className="w-2.5 h-2.5 rounded-full opacity-80"
+                      style={{ backgroundColor: colorHex }} />
+                  )}
+                  {token && (
+                    <Token
+                      color={token.color}
+                      isValidMove={token.isValid}
+                      isHopping={token.isHopping}
+                      isCaptured={token.isCaptured}
+                      onClick={() => onSelectToken(token.tokenId)}
+                      size="sm"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Move Timer Bar or Color Name */}
+        {isMoveTimerActive ? (
+          <div className="w-[85%] h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(139,69,19,0.3)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-200"
+              style={{ width: `${movePercent}%`, backgroundColor: colorHex }}
+            />
+          </div>
+        ) : (
+          <div className="text-[8px] font-black uppercase tracking-widest select-none" style={{ color: '#FAF0DC' }}>
+            {colorName}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ── Default HomeYard (Dark / Neon / Festive themes) ──────────── */
   return (
     <div className="w-full h-full rounded-xl p-1.5 md:p-2 flex flex-col items-center justify-between relative overflow-hidden">
       {/* Festive Corner Ornament */}
       {isFestive && (
-        <div className="absolute top-1 left-1 text-[12px] opacity-70 select-none">
-          🪷
-        </div>
+        <div className="absolute top-1 left-1 text-[12px] opacity-70 select-none">🪷</div>
       )}
 
-      {/* Header with Username & Status */}
+      {/* Header with Username & Move Timer Badge */}
       <div className="w-full flex items-center justify-between px-1 z-10">
-        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[75%]">
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
           {player.username}
         </span>
-        <span
-          className="w-2.5 h-2.5 rounded-full ring-2 ring-white/60 shadow-sm"
-          style={{ backgroundColor: colorHex }}
-        ></span>
+        {isMoveTimerActive ? (
+          <span
+            className="text-[9px] md:text-[10px] font-mono font-black px-1.5 py-0.5 rounded-full text-white animate-pulse shadow-md flex items-center gap-0.5"
+            style={{ backgroundColor: colorHex, boxShadow: `0 0 10px ${colorHex}` }}
+          >
+            ⏱️ {moveSeconds}s
+          </span>
+        ) : (
+          <span
+            className="w-2.5 h-2.5 rounded-full ring-2 ring-white/60 shadow-sm"
+            style={{ backgroundColor: colorHex }}
+          />
+        )}
       </div>
 
       {/* Inset Base Square with Diamond Pips */}
       <div
         className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
-          isDarkMode
-            ? 'bg-[#121212] border-white/15 shadow-black/80'
-            : 'bg-white border-black/10'
+          isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
         }`}
       >
         {/* Rotated Diamond Background */}
@@ -399,10 +625,10 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
           className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
           style={{
             borderColor: colorHex,
-            backgroundColor: isDarkMode ? `${colorHex}1a` : isFlatMinimal ? `${colorHex}15` : `${colorHex}25`,
+            backgroundColor: isDarkMode ? `${colorHex}1a` : `${colorHex}25`,
             boxShadow: isDarkMode ? `0 0 10px ${colorHex}35` : 'none'
           }}
-        ></div>
+        />
 
         {/* 4 Token Bases in 2x2 Dice Pip Grid */}
         <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
@@ -413,18 +639,16 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
                 key={slotIdx}
                 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
                 style={{
-                  backgroundColor: isDarkMode ? '#1c1917' : isFlatMinimal ? '#FFFFFF' : '#F8FAFC',
+                  backgroundColor: isDarkMode ? '#1c1917' : '#F8FAFC',
                   borderColor: colorHex
                 }}
               >
-                {/* Empty slot pip dot */}
                 {!token && (
                   <div
                     className="w-2.5 h-2.5 rounded-full opacity-70"
                     style={{ backgroundColor: colorHex, boxShadow: `0 0 6px ${colorHex}` }}
-                  ></div>
+                  />
                 )}
-                {/* Token */}
                 {token && (
                   <Token
                     color={token.color}
@@ -441,10 +665,23 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
         </div>
       </div>
 
-      {/* Bottom spacer / subtle label */}
-      <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest drop-shadow-sm select-none">
-        {colorName}
-      </div>
+      {/* Shrinking Move Timer Progress Bar */}
+      {isMoveTimerActive ? (
+        <div className="w-[85%] h-1 bg-black/40 rounded-full overflow-hidden border border-white/10">
+          <div
+            className="h-full rounded-full transition-all duration-200"
+            style={{
+              width: `${movePercent}%`,
+              backgroundColor: colorHex,
+              boxShadow: `0 0 8px ${colorHex}`
+            }}
+          />
+        </div>
+      ) : (
+        <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest drop-shadow-sm select-none">
+          {colorName}
+        </div>
+      )}
     </div>
   );
 }
@@ -522,7 +759,14 @@ function renderSubGrid(
 
           {/* Starting Arrow Indicator (if safe star not present) */}
           {!isSafe && markerText && occupants.length === 0 && (
-            <span className="text-[9px] font-bold text-white/50 select-none">{markerText}</span>
+            <span
+              className="font-black select-none"
+              style={{
+                fontSize: theme.isPachisi ? '11px' : '9px',
+                color: theme.isPachisi ? '#5C2A00' : 'rgba(255,255,255,0.5)',
+                textShadow: theme.isPachisi ? '0 1px 2px rgba(92,42,0,0.4)' : 'none'
+              }}
+            >{markerText}</span>
           )}
 
           {/* Occupant Tokens */}

@@ -2,36 +2,43 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { socketService } from '../services/socket';
-import { setGameState, setDiceRolling, setValidTokens, resetGame } from '../store/gameSlice';
+import { setGameState, setDiceRolling, setValidTokens } from '../store/gameSlice';
+import { toggleSound } from '../store/settingsSlice';
 import LudoBoard from '../components/LudoBoard';
 import Dice from '../components/Dice';
 import PlayerCard from '../components/PlayerCard';
 import ChatDrawer from '../components/ChatDrawer';
 import { BOARD_THEMES } from '../game/boardThemes';
+import { getBestAutoMove } from '../game/bot';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 import confetti from 'canvas-confetti';
-import { MessageSquare, ArrowLeft, RotateCcw, Volume2, VolumeX, Palette, Clock, Check } from 'lucide-react';
-import { toggleSound } from '../store/settingsSlice';
+import { ArrowLeft, MessageSquare, Palette, Clock, Check, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 
 export default function GamePlay() {
   const { code } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const socket = socketService.getSocket();
 
   const { user } = useSelector((state) => state.auth);
-  const { gameState, diceRolling, validTokens } = useSelector((state) => state.game);
+  const { gameState, diceRolling } = useSelector((state) => state.game);
   const { sound: isSoundEnabled } = useSelector((state) => state.settings);
 
   const [chatOpen, setChatOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
   const [unreadChat, setUnreadChat] = useState(0);
+  const [messages, setMessages] = useState([]);
   const [themeName, setThemeName] = useState(localStorage.getItem('budo_board_theme') || 'classic');
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
 
+  // Move Timer Feature (6-second countdown for move selection)
+  const [moveTimerSeconds, setMoveTimerSeconds] = useState(6);
+  const [moveTimerActive, setMoveTimerActive] = useState(false);
+  const moveTimerIntervalRef = useRef(null);
+  const moveTimerAutoMoveRef = useRef(null);
+
   const autoMoveTimerRef = useRef(null);
-  const socket = socketService.getSocket();
 
   // Change and persist board theme
   const handleSelectTheme = (tId) => {
@@ -41,7 +48,11 @@ export default function GamePlay() {
     setShowThemeModal(false);
   };
 
+  const validTokens = gameState?.validMoves || [];
+
   useEffect(() => {
+    if (!socket) return;
+
     if (!gameState) {
       socket.emit('game:getState', { roomId: code });
     }
@@ -50,9 +61,6 @@ export default function GamePlay() {
     socket.on('dice:result', (data) => {
       dispatch(setDiceRolling(false));
       dispatch(setGameState(data.gameState));
-      if (data.validTokens) {
-        dispatch(setValidTokens(data.validTokens));
-      }
       sound.playDiceRoll();
       triggerHaptic('medium');
     });
@@ -60,7 +68,6 @@ export default function GamePlay() {
     // Listen to token update
     socket.on('token:update', (data) => {
       dispatch(setGameState(data.gameState));
-      dispatch(setValidTokens([]));
       
       if (data.outcome?.captures?.length > 0) {
         sound.playCapture();
@@ -142,7 +149,8 @@ export default function GamePlay() {
         if (gameState.phase === 'WAITING_ROLL') {
           handleRollDice();
         } else if (gameState.phase === 'WAITING_MOVE' && validTokens.length > 0) {
-          handleSelectToken(validTokens[0]);
+          const best = getBestAutoMove(gameState, currentPlayer.playerIndex, gameState.diceValue);
+          if (best !== null) handleSelectToken(best);
         }
       }
     }, 1000);
@@ -150,24 +158,58 @@ export default function GamePlay() {
     return () => clearInterval(timerInterval);
   }, [gameState?.currentTurnIndex, gameState?.turnStartTime, gameState?.phase, validTokens, user?.id]);
 
-  // Auto-move single coin / token feature
+  // Move Countdown Timer (6s countdown with smart priority auto-move fallback)
   useEffect(() => {
-    if (!gameState || gameState.phase !== 'WAITING_MOVE') return;
+    if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+    if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+
+    if (!gameState || gameState.phase !== 'WAITING_MOVE') {
+      setMoveTimerActive(false);
+      return;
+    }
 
     const currentPlayer = gameState.players[gameState.currentTurnIndex];
     const isMyTurn = currentPlayer?.userId === user?.id;
 
-    if (isMyTurn && validTokens.length === 1) {
-      // Auto move single valid token after 1200ms preview so user clearly sees the roll and move indicator
-      autoMoveTimerRef.current = setTimeout(() => {
-        handleSelectToken(validTokens[0]);
-      }, 1200);
-
-      return () => {
-        if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
-      };
+    if (!isMyTurn || validTokens.length === 0) {
+      setMoveTimerActive(false);
+      return;
     }
-  }, [gameState?.phase, gameState?.currentTurnIndex, validTokens, user?.id]);
+
+    const TOTAL_MOVE_SECONDS = 6;
+    setMoveTimerSeconds(TOTAL_MOVE_SECONDS);
+    setMoveTimerActive(true);
+
+    const startTime = Date.now();
+    moveTimerIntervalRef.current = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, TOTAL_MOVE_SECONDS - elapsedSec);
+      setMoveTimerSeconds(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(moveTimerIntervalRef.current);
+        setMoveTimerActive(false);
+
+        // Auto-pick coin with priority: capture opponent > reach home > furthest on path > first available
+        const bestToken = getBestAutoMove(gameState, currentPlayer.playerIndex, gameState.diceValue);
+        if (bestToken !== null) {
+          handleSelectToken(bestToken);
+        }
+      }
+    }, 200);
+
+    // If single valid token, preview and auto-move after 1.8s
+    if (validTokens.length === 1) {
+      moveTimerAutoMoveRef.current = setTimeout(() => {
+        handleSelectToken(validTokens[0]);
+      }, 1800);
+    }
+
+    return () => {
+      if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+      if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+    };
+  }, [gameState?.phase, gameState?.currentTurnIndex, validTokens, user?.id, gameState?.diceValue]);
 
   if (!gameState) {
     return (
@@ -190,7 +232,10 @@ export default function GamePlay() {
   };
 
   const handleSelectToken = (tokenId) => {
-    if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
+    if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+    if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+    setMoveTimerActive(false);
+
     if (!isMyTurn || !isWaitingMove) return;
     if (!validTokens.includes(tokenId)) return;
 
@@ -284,6 +329,7 @@ export default function GamePlay() {
               isWinner={gameState.winner?.userId === p.userId}
               compact={true}
               remainingSeconds={remainingSeconds}
+              moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
             />
           ))}
         </div>
@@ -335,6 +381,14 @@ export default function GamePlay() {
                     YOU
                   </span>
                 )}
+                {moveTimerActive && (
+                  <span
+                    className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full text-white animate-pulse shadow-md"
+                    style={{ backgroundColor: currentPlayer?.color?.hex, boxShadow: `0 0 10px ${currentPlayer?.color?.hex}` }}
+                  >
+                    ⏱️ {moveTimerSeconds}s
+                  </span>
+                )}
               </div>
               <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 {isWaitingRoll && (isMyTurn ? '👉 Tap 3D Dice to roll' : 'Rolling dice...')}
@@ -360,6 +414,7 @@ export default function GamePlay() {
             onSelectToken={handleSelectToken}
             validTokens={isMyTurn ? validTokens : []}
             themeName={themeName}
+            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
           />
         </div>
       </main>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OfflineLudoEngine } from '../game/offlineEngine';
-import { getBotMove } from '../game/bot';
+import { getBotMove, getBestAutoMove } from '../game/bot';
 import LudoBoard from '../components/LudoBoard';
 import Dice from '../components/Dice';
 import PlayerCard from '../components/PlayerCard';
@@ -24,7 +24,11 @@ export default function OfflineGame() {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
 
-  const autoMoveTimerRef = useRef(null);
+  // Move Timer Feature (6-second countdown for move selection)
+  const [moveTimerSeconds, setMoveTimerSeconds] = useState(6);
+  const [moveTimerActive, setMoveTimerActive] = useState(false);
+  const moveTimerIntervalRef = useRef(null);
+  const moveTimerAutoMoveRef = useRef(null);
 
   const handleSelectTheme = (tId) => {
     sound.playClick();
@@ -63,7 +67,7 @@ export default function OfflineGame() {
     setGameStarted(true);
   };
 
-  // Roll Dice (1.7s animation matching Dice.jsx)
+  // Roll Dice (1.3s animation matching Dice.jsx)
   const handleRollDice = () => {
     if (!engine || diceRolling) return;
     const current = gameState.players[gameState.currentTurnIndex];
@@ -84,7 +88,11 @@ export default function OfflineGame() {
 
   // Select and Move Token
   const handleSelectToken = (tokenId) => {
-    if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
+    // Cancel move timer immediately upon token selection
+    if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+    if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+    setMoveTimerActive(false);
+
     if (!engine) return;
 
     const moveRes = engine.moveToken(tokenId);
@@ -106,7 +114,7 @@ export default function OfflineGame() {
     }
   };
 
-  // 60s Turn Timer for Offline Game
+  // 60s Turn Inactivity Fallback Timer
   useEffect(() => {
     if (!gameStarted || !gameState || gameState.phase === 'GAME_OVER') return;
 
@@ -132,7 +140,8 @@ export default function OfflineGame() {
         if (gameState.phase === 'WAITING_ROLL') {
           handleRollDice();
         } else if (gameState.phase === 'WAITING_MOVE' && gameState.validMoves?.length > 0) {
-          handleSelectToken(gameState.validMoves[0]);
+          const best = getBestAutoMove(engine.getState(), currentPlayer.playerIndex, gameState.diceValue);
+          if (best !== null) handleSelectToken(best);
         }
       }
     }, 1000);
@@ -140,23 +149,62 @@ export default function OfflineGame() {
     return () => clearInterval(timerInterval);
   }, [gameStarted, gameState?.currentTurnIndex, gameState?.turnStartTime, gameState?.phase, gameState?.validMoves]);
 
-  // Single Coin Auto-Move Effect for Human Players (giving 1.2s to see roll and indicator)
+  // Move Countdown Timer (6s countdown for WAITING_MOVE with smart priority auto-move fallback)
   useEffect(() => {
-    if (!engine || !gameState || gameState.phase !== 'WAITING_MOVE') return;
+    if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+    if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+
+    if (!engine || !gameState || gameState.phase !== 'WAITING_MOVE') {
+      setMoveTimerActive(false);
+      return;
+    }
 
     const currentPlayer = gameState.players[gameState.currentTurnIndex];
-    const isHumanTurn = !currentPlayer?.isBot;
-
-    if (isHumanTurn && gameState.validMoves?.length === 1) {
-      autoMoveTimerRef.current = setTimeout(() => {
-        handleSelectToken(gameState.validMoves[0]);
-      }, 1200);
-
-      return () => {
-        if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
-      };
+    if (!currentPlayer || currentPlayer.isBot) {
+      setMoveTimerActive(false);
+      return;
     }
-  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.validMoves]);
+
+    const validMoves = gameState.validMoves || [];
+    if (validMoves.length === 0) {
+      setMoveTimerActive(false);
+      return;
+    }
+
+    const TOTAL_MOVE_SECONDS = 6;
+    setMoveTimerSeconds(TOTAL_MOVE_SECONDS);
+    setMoveTimerActive(true);
+
+    const startTime = Date.now();
+    moveTimerIntervalRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, TOTAL_MOVE_SECONDS - elapsed);
+      setMoveTimerSeconds(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(moveTimerIntervalRef.current);
+        setMoveTimerActive(false);
+
+        // Auto-pick coin with priority: capture opponent > reach home > furthest on path > first available
+        const bestToken = getBestAutoMove(engine.getState(), currentPlayer.playerIndex, gameState.diceValue);
+        if (bestToken !== null) {
+          handleSelectToken(bestToken);
+        }
+      }
+    }, 200);
+
+    // If only 1 coin is movable, auto-move smoothly after 1.8s preview if player doesn't tap sooner
+    if (validMoves.length === 1) {
+      moveTimerAutoMoveRef.current = setTimeout(() => {
+        handleSelectToken(validMoves[0]);
+      }, 1800);
+    }
+
+    return () => {
+      if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
+      if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
+    };
+  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue]);
 
   // Bot Turn Automation Effect with visual 1.7s dice roll
   useEffect(() => {
@@ -374,6 +422,7 @@ export default function OfflineGame() {
               isWinner={gameState.winner?.userId === p.userId}
               compact={true}
               remainingSeconds={remainingSeconds}
+              moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
             />
           ))}
         </div>
@@ -425,6 +474,14 @@ export default function OfflineGame() {
                     YOU
                   </span>
                 )}
+                {moveTimerActive && (
+                  <span
+                    className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full text-white animate-pulse shadow-md"
+                    style={{ backgroundColor: currentPlayer?.color.hex, boxShadow: `0 0 10px ${currentPlayer?.color.hex}` }}
+                  >
+                    ⏱️ {moveTimerSeconds}s
+                  </span>
+                )}
               </div>
               <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 {isWaitingRoll && (isHumanTurn ? '👉 Tap 3D Dice to roll' : '🤖 Bot thinking...')}
@@ -449,6 +506,7 @@ export default function OfflineGame() {
             onSelectToken={handleSelectToken}
             validTokens={isHumanTurn ? gameState.validMoves : []}
             themeName={themeName}
+            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
           />
         </div>
       </main>
