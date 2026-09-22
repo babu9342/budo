@@ -1,10 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 
 export default function Dice({ value, isRolling, disabled, onRoll, playerColor = '#3B82F6' }) {
   const [internalRoll, setInternalRoll] = useState(false);
+  const [isLandingPop, setIsLandingPop] = useState(false);
   const [displayValue, setDisplayValue] = useState(value || 6);
+  const [hasEntered, setHasEntered] = useState(false);
+  const prevDisabledRef = useRef(disabled);
+
+  // Trigger drop bounce when it becomes player's active turn
+  useEffect(() => {
+    if (prevDisabledRef.current && !disabled) {
+      setHasEntered(true);
+      const t = setTimeout(() => setHasEntered(false), 700);
+      return () => clearTimeout(t);
+    }
+    prevDisabledRef.current = disabled;
+  }, [disabled]);
 
   useEffect(() => {
     if (value) {
@@ -15,18 +28,24 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
   useEffect(() => {
     if (isRolling) {
       setInternalRoll(true);
+      setIsLandingPop(false);
       sound.playDiceRoll();
       triggerHaptic('medium');
 
+      // Cycle numbers every 110ms during rolling for ~1.3s
       const interval = setInterval(() => {
         setDisplayValue(Math.floor(Math.random() * 6) + 1);
-      }, 65);
+      }, 110);
 
       const timeout = setTimeout(() => {
         clearInterval(interval);
         setInternalRoll(false);
         if (value) setDisplayValue(value);
-      }, 500);
+
+        // Landing Pop & Glow Flash
+        setIsLandingPop(true);
+        setTimeout(() => setIsLandingPop(false), 450);
+      }, 1300);
 
       return () => {
         clearInterval(interval);
@@ -44,13 +63,14 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
     onRoll();
   };
 
+  // High-visibility crisp light/white pips with red accents
   const renderDots = (val) => {
-    const dotClasses = "w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 rounded-full bg-slate-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.8)]";
+    const dotClasses = "w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 rounded-full bg-[#F8FAFC] shadow-[0_0_6px_rgba(255,255,255,0.8),inset_0_1px_2px_rgba(0,0,0,0.4)]";
     switch (val) {
       case 1:
         return (
           <div className="flex items-center justify-center w-full h-full">
-            <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-600 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),0_0_8px_rgba(239,68,68,0.6)] animate-pulse"></span>
+            <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9),inset_0_2px_4px_rgba(0,0,0,0.5)] animate-pulse"></span>
           </div>
         );
       case 2:
@@ -84,7 +104,7 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
             <span></span>
             <span className={dotClasses}></span>
             <span></span>
-            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-600 shadow-inner"></span>
+            <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
             <span></span>
             <span className={dotClasses}></span>
             <span></span>
@@ -112,7 +132,7 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
     <div className="flex flex-col items-center justify-center select-none relative">
       {/* Bonus Roll 6 Badge */}
       {isSix && !disabled && (
-        <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-red-500 text-white font-black text-[9px] uppercase tracking-wider shadow-lg animate-bounce z-20 whitespace-nowrap">
+        <span className="absolute -top-3.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-red-500 text-white font-black text-[9px] uppercase tracking-wider shadow-[0_0_12px_rgba(245,158,11,0.8)] animate-bounce z-20 whitespace-nowrap">
           🔥 Roll 6 Bonus!
         </span>
       )}
@@ -122,20 +142,28 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
         disabled={disabled || isRolling || internalRoll}
         aria-label="Roll Dice"
         style={{
-          boxShadow: !disabled ? `0 0 25px ${playerColor}99, 0 8px 16px rgba(0,0,0,0.5)` : '0 4px 10px rgba(0,0,0,0.4)'
+          boxShadow: isLandingPop
+            ? `0 0 35px ${playerColor}, 0 0 15px #FFFFFF`
+            : !disabled
+            ? `0 0 25px ${playerColor}bb, 0 8px 20px rgba(0,0,0,0.8)`
+            : '0 4px 10px rgba(0,0,0,0.6)'
         }}
-        className={`relative w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl bg-gradient-to-b from-white via-slate-100 to-slate-300 border-2 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-90 ${
+        className={`relative w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-[#18181b] border-2 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-90 ${
+          hasEntered ? 'animate-dice-drop' : ''
+        } ${
+          isLandingPop ? 'animate-dice-pop ring-4 ring-white' : ''
+        } ${
           !disabled
-            ? 'border-white ring-4 ring-amber-400/50 hover:scale-105 animate-bounce-subtle'
-            : 'border-slate-600 opacity-60 cursor-not-allowed'
-        } ${internalRoll ? 'rotate-45 scale-110 shadow-2xl' : ''}`}
+            ? 'border-white/80 ring-4 ring-amber-400/60 hover:scale-105'
+            : 'border-white/10 opacity-50 cursor-not-allowed'
+        } ${internalRoll || isRolling ? 'animate-dice-roll shadow-2xl ring-4 ring-amber-400 scale-105' : ''}`}
       >
-        {/* Dice Face Container with 3D inset border */}
-        <div className="w-full h-full flex items-center justify-center p-1 rounded-xl bg-gradient-to-br from-white/90 to-slate-200/90 shadow-inner relative">
+        {/* Dice Face Container with Dark Inner Glass Gradient */}
+        <div className="w-full h-full flex items-center justify-center p-1 rounded-xl md:rounded-2xl bg-gradient-to-br from-[#27272a] to-[#09090b] shadow-inner relative border border-white/10">
           {renderDots(displayValue)}
         </div>
 
-        {/* Turn Glow Overlay indicator */}
+        {/* Turn Active Ping Indicator */}
         {!disabled && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80"></span>
@@ -144,7 +172,7 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
         )}
       </button>
 
-      <span className={`text-[11px] font-black mt-1.5 uppercase tracking-wider ${!disabled ? 'text-amber-400 animate-pulse drop-shadow' : 'text-slate-500'}`}>
+      <span className={`text-[11px] font-black mt-1.5 uppercase tracking-wider ${!disabled ? 'text-amber-400 animate-pulse drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-slate-500'}`}>
         {!disabled ? (isSix ? 'BONUS ROLL' : 'TAP TO ROLL') : 'WAITING'}
       </span>
     </div>

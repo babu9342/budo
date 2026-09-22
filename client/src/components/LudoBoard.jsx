@@ -18,6 +18,7 @@ export default function LudoBoard({
 
   const [animatingPositions, setAnimatingPositions] = useState({});
   const [hoppingToken, setHoppingToken] = useState(null);
+  const [capturedTokens, setCapturedTokens] = useState({});
   const prevPositionsRef = useRef(null);
   const animIntervalRef = useRef(null);
 
@@ -40,6 +41,24 @@ export default function LudoBoard({
 
     const prevMap = prevPositionsRef.current;
     let forwardMove = null;
+
+    // Detect captures (token reset from track >= 0 to -1)
+    for (const key in prevMap) {
+      const oldStep = prevMap[key];
+      const newStep = currentMap[key] !== undefined ? currentMap[key] : -1;
+      if (oldStep >= 0 && newStep === -1) {
+        sound.playCapture();
+        triggerHaptic('heavy');
+        setCapturedTokens(prev => ({ ...prev, [key]: true }));
+        setTimeout(() => {
+          setCapturedTokens(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 500);
+      }
+    }
 
     // Detect if any token moved forward
     for (const key in currentMap) {
@@ -71,7 +90,7 @@ export default function LudoBoard({
         const t = setTimeout(() => {
           setHoppingToken(null);
           setAnimatingPositions(currentMap);
-        }, 180);
+        }, 320);
         return () => clearTimeout(t);
       } else if (forwardMove.type === 'step_by_step') {
         let currentStep = forwardMove.from;
@@ -80,6 +99,7 @@ export default function LudoBoard({
 
         setHoppingToken(key);
 
+        // Smooth cell-by-cell 320ms hop with easing
         animIntervalRef.current = setInterval(() => {
           currentStep += 1;
           sound.playMove();
@@ -92,9 +112,9 @@ export default function LudoBoard({
             setTimeout(() => {
               setHoppingToken(null);
               setAnimatingPositions(currentMap);
-            }, 120);
+            }, 180);
           }
-        }, 120);
+        }, 320);
 
         return () => {
           if (animIntervalRef.current) clearInterval(animIntervalRef.current);
@@ -107,7 +127,7 @@ export default function LudoBoard({
 
   // Map of globalPos -> Array of token objects
   const cellOccupants = {};
-  // Home bases: playerIndex -> Array of { tokenId, color, isValid, step, playerIndex, isHopping }
+  // Home bases: playerIndex -> Array of { tokenId, color, isValid, step, playerIndex, isHopping, isCaptured }
   const homeBases = Array.from({ length: playerCount }, () => []);
   // Finish base: Array of { playerIndex, tokenId, color, isHopping }
   const finishOccupants = [];
@@ -120,6 +140,7 @@ export default function LudoBoard({
 
       const displayedStep = animatingPositions[key] !== undefined ? animatingPositions[key] : actualStep;
       const isHopping = hoppingToken === key;
+      const isCaptured = Boolean(capturedTokens[key]);
 
       const tokenObj = {
         playerIndex: pIdx,
@@ -127,7 +148,8 @@ export default function LudoBoard({
         color: player.color,
         isValid,
         step: displayedStep,
-        isHopping
+        isHopping,
+        isCaptured
       };
 
       if (displayedStep === -1) {
@@ -261,17 +283,19 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 5. CENTER: Finish Victory Triangles (rows 6-8, cols 6-8) */}
-      <div className="col-span-3 row-span-3 bg-slate-950 relative flex items-center justify-center border border-amber-400/50 shadow-inner overflow-hidden">
+      <div className="col-span-3 row-span-3 bg-[#0d0d0d] relative flex items-center justify-center border border-amber-400/50 shadow-2xl overflow-hidden">
+        {/* Subtle Radial Glow Focal Point */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.28)_0%,transparent_75%)] pointer-events-none z-0"></div>
         <div className="absolute inset-0">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity="0.9" />
-            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity="0.9" />
-            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity="0.9" />
-            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity="0.9" />
+            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity="0.95" />
+            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity="0.95" />
+            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity="0.95" />
+            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity="0.95" />
           </svg>
         </div>
         {/* Center Glow Hub */}
-        <div className="absolute w-6 h-6 rounded-full bg-slate-950/80 border border-amber-300 flex items-center justify-center shadow-lg z-0"></div>
+        <div className="absolute w-6 h-6 rounded-full bg-black/90 border border-amber-300 flex items-center justify-center shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0"></div>
         {/* Finish Tokens Stack */}
         <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1 max-w-[85%] max-h-[85%] overflow-hidden">
           {finishOccupants.map((t, idx) => (
@@ -279,6 +303,7 @@ function Classic4PlayerBoard({
               key={`fin_${idx}`}
               color={t.color}
               size="sm"
+              isCaptured={t.isCaptured}
               stackCount={1}
             />
           ))}
@@ -289,7 +314,7 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-slate-950/60">
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3 gap-[1px] bg-[#2a2a2a]">
         {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
@@ -306,7 +331,7 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 8. BOTTOM-MIDDLE: Bottom Runway Track (rows 9-14, cols 6-8) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-slate-950/60">
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6 gap-[1px] bg-[#2a2a2a]">
         {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
       </div>
 
@@ -339,6 +364,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
 
   const isFlatMinimal = theme.isFlatMinimal;
   const isFestive = theme.isFestive;
+  const isDarkMode = theme.isDarkMode;
 
   return (
     <div className="w-full h-full rounded-xl p-1.5 md:p-2 flex flex-col items-center justify-between relative overflow-hidden">
@@ -360,14 +386,21 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
         ></span>
       </div>
 
-      {/* Classic Inset White Square with Diamond Pips */}
-      <div className="w-[82%] aspect-square bg-white rounded-lg shadow-md border border-black/10 flex items-center justify-center relative p-1">
+      {/* Inset Base Square with Diamond Pips */}
+      <div
+        className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
+          isDarkMode
+            ? 'bg-[#121212] border-white/15 shadow-black/80'
+            : 'bg-white border-black/10'
+        }`}
+      >
         {/* Rotated Diamond Background */}
         <div
-          className="w-[74%] aspect-square rounded-md rotate-45 border-2 flex items-center justify-center transition-all"
+          className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
           style={{
             borderColor: colorHex,
-            backgroundColor: isFlatMinimal ? `${colorHex}15` : `${colorHex}25`
+            backgroundColor: isDarkMode ? `${colorHex}1a` : isFlatMinimal ? `${colorHex}15` : `${colorHex}25`,
+            boxShadow: isDarkMode ? `0 0 10px ${colorHex}35` : 'none'
           }}
         ></div>
 
@@ -380,15 +413,15 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
                 key={slotIdx}
                 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
                 style={{
-                  backgroundColor: isFlatMinimal ? '#FFFFFF' : '#F8FAFC',
+                  backgroundColor: isDarkMode ? '#1c1917' : isFlatMinimal ? '#FFFFFF' : '#F8FAFC',
                   borderColor: colorHex
                 }}
               >
                 {/* Empty slot pip dot */}
                 {!token && (
                   <div
-                    className="w-2.5 h-2.5 rounded-full opacity-60"
-                    style={{ backgroundColor: colorHex }}
+                    className="w-2.5 h-2.5 rounded-full opacity-70"
+                    style={{ backgroundColor: colorHex, boxShadow: `0 0 6px ${colorHex}` }}
                   ></div>
                 )}
                 {/* Token */}
@@ -397,6 +430,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme })
                     color={token.color}
                     isValidMove={token.isValid}
                     isHopping={token.isHopping}
+                    isCaptured={token.isCaptured}
                     onClick={() => onSelectToken(token.tokenId)}
                     size="sm"
                   />
@@ -500,6 +534,7 @@ function renderSubGrid(
                     color={occ.color}
                     isValidMove={occ.isValid}
                     isHopping={occ.isHopping}
+                    isCaptured={occ.isCaptured}
                     onClick={() => onSelectToken(occ.tokenId)}
                     stackCount={occupants.length}
                     size="sm"
@@ -569,6 +604,7 @@ function RadialMultiPlayerBoard({
                     color={tok.color}
                     isValidMove={tok.isValid}
                     isHopping={tok.isHopping}
+                    isCaptured={tok.isCaptured}
                     onClick={() => onSelectToken(tok.tokenId)}
                     size="sm"
                   />

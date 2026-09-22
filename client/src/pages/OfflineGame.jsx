@@ -63,7 +63,7 @@ export default function OfflineGame() {
     setGameStarted(true);
   };
 
-  // Roll Dice
+  // Roll Dice (1.7s animation matching Dice.jsx)
   const handleRollDice = () => {
     if (!engine || diceRolling) return;
     const current = gameState.players[gameState.currentTurnIndex];
@@ -79,7 +79,7 @@ export default function OfflineGame() {
       if (rollRes) {
         setGameState(rollRes.gameState);
       }
-    }, 450);
+    }, 1300);
   };
 
   // Select and Move Token
@@ -140,7 +140,7 @@ export default function OfflineGame() {
     return () => clearInterval(timerInterval);
   }, [gameStarted, gameState?.currentTurnIndex, gameState?.turnStartTime, gameState?.phase, gameState?.validMoves]);
 
-  // Single Coin Auto-Move Effect for Human Players
+  // Single Coin Auto-Move Effect for Human Players (giving 1.2s to see roll and indicator)
   useEffect(() => {
     if (!engine || !gameState || gameState.phase !== 'WAITING_MOVE') return;
 
@@ -150,7 +150,7 @@ export default function OfflineGame() {
     if (isHumanTurn && gameState.validMoves?.length === 1) {
       autoMoveTimerRef.current = setTimeout(() => {
         handleSelectToken(gameState.validMoves[0]);
-      }, 450);
+      }, 1200);
 
       return () => {
         if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
@@ -158,7 +158,7 @@ export default function OfflineGame() {
     }
   }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.validMoves]);
 
-  // Bot Turn Automation Effect
+  // Bot Turn Automation Effect with visual 1.7s dice roll
   useEffect(() => {
     if (!engine || !gameState || gameState.phase === 'GAME_OVER') return;
 
@@ -166,34 +166,40 @@ export default function OfflineGame() {
     if (currentPlayer && currentPlayer.isBot) {
       const timer1 = setTimeout(() => {
         if (gameState.phase === 'WAITING_ROLL') {
-          const rollRes = engine.rollDice();
-          if (rollRes) {
-            setGameState(rollRes.gameState);
+          setDiceRolling(true);
+          sound.playDiceRoll();
 
-            if (rollRes.validTokens && rollRes.validTokens.length > 0) {
-              const timer2 = setTimeout(() => {
-                const bestToken = getBotMove(
-                  engine.getState(),
-                  currentPlayer.playerIndex,
-                  rollRes.diceValue,
-                  currentPlayer.botDifficulty
-                );
-                if (bestToken !== null) {
-                  const moveRes = engine.moveToken(bestToken);
-                  if (moveRes) {
-                    setGameState(moveRes.gameState);
-                    if (moveRes.outcome?.captures?.length > 0) sound.playCapture();
-                    else sound.playMove();
-                    if (moveRes.gameOver) {
-                      sound.playVictory();
-                      confetti({ particleCount: 150, spread: 80 });
+          setTimeout(() => {
+            const rollRes = engine.rollDice();
+            setDiceRolling(false);
+            if (rollRes) {
+              setGameState(rollRes.gameState);
+
+              if (rollRes.validTokens && rollRes.validTokens.length > 0) {
+                const timer2 = setTimeout(() => {
+                  const bestToken = getBotMove(
+                    engine.getState(),
+                    currentPlayer.playerIndex,
+                    rollRes.diceValue,
+                    currentPlayer.botDifficulty
+                  );
+                  if (bestToken !== null) {
+                    const moveRes = engine.moveToken(bestToken);
+                    if (moveRes) {
+                      setGameState(moveRes.gameState);
+                      if (moveRes.outcome?.captures?.length > 0) sound.playCapture();
+                      else sound.playMove();
+                      if (moveRes.gameOver) {
+                        sound.playVictory();
+                        confetti({ particleCount: 150, spread: 80 });
+                      }
                     }
                   }
-                }
-              }, 600);
-              return () => clearTimeout(timer2);
+                }, 1000);
+                return () => clearTimeout(timer2);
+              }
             }
-          }
+          }, 1300);
         }
       }, 700);
       return () => clearTimeout(timer1);

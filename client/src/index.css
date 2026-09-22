@@ -62,13 +62,32 @@ html, body {
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes tokenHop {
+/* Large Glowing Move Indicator Pulse Animation (800ms loop) */
+@keyframes moveIndicatorPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.95)) drop-shadow(0 3px 5px rgba(0,0,0,0.9));
+  }
+  50% {
+    transform: translateY(-9px) scale(1.18);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 16px rgba(250, 204, 21, 1)) drop-shadow(0 5px 8px rgba(0,0,0,0.95));
+  }
+}
+
+.animate-indicator-pulse {
+  animation: moveIndicatorPulse 0.8s infinite ease-in-out;
+}
+
+/* Cell-by-Cell Token Vertical Hop Arc (320ms) */
+@keyframes tokenHopArc {
   0% {
     transform: scale(1) translateY(0);
   }
   50% {
-    transform: scale(1.35) translateY(-10px);
-    filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.8));
+    transform: scale(1.35) translateY(-14px);
+    filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.95));
   }
   100% {
     transform: scale(1) translateY(0);
@@ -76,7 +95,86 @@ html, body {
 }
 
 .animate-token-hop {
-  animation: tokenHop 0.14s ease-out infinite;
+  animation: tokenHopArc 0.32s ease-in-out infinite;
   z-index: 50 !important;
+}
+
+/* Opponent Token Capture Shake & Fade Out */
+@keyframes captureShakeFade {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: scale(1.25) rotate(-18deg);
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
+  }
+  40% {
+    transform: scale(1.1) rotate(18deg);
+  }
+  60% {
+    transform: scale(0.8) rotate(-12deg);
+    opacity: 0.7;
+  }
+  80% {
+    transform: scale(0.4) rotate(6deg);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+.animate-capture-fade {
+  animation: captureShakeFade 0.45s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  pointer-events: none;
+}
+
+/* Dice Drop In from Above with Ease-Out-Bounce */
+@keyframes diceDropIn {
+  0% {
+    transform: translateY(-80px) scale(0.6) rotate(-25deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(8px) scale(1.1) rotate(6deg);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-4px) scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-dice-drop {
+  animation: diceDropIn 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Dice Rolling Tumble */
+@keyframes diceTumble {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-16deg) scale(1.12) translateY(-4px); }
+  50% { transform: rotate(16deg) scale(1.16) translateY(-6px); }
+  75% { transform: rotate(-12deg) scale(1.12) translateY(-2px); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.animate-dice-roll {
+  animation: diceTumble 0.22s infinite ease-in-out;
+}
+
+/* Dice Landing Scale Pop and Glow */
+@keyframes diceLandPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+.animate-dice-pop {
+  animation: diceLandPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 

@@ -158,10 +158,10 @@ export default function GamePlay() {
     const isMyTurn = currentPlayer?.userId === user?.id;
 
     if (isMyTurn && validTokens.length === 1) {
-      // Auto move single valid token after 450ms smooth preview
+      // Auto move single valid token after 1200ms preview so user clearly sees the roll and move indicator
       autoMoveTimerRef.current = setTimeout(() => {
         handleSelectToken(validTokens[0]);
-      }, 450);
+      }, 1200);
 
       return () => {
         if (autoMoveTimerRef.current) clearTimeout(autoMoveTimerRef.current);
