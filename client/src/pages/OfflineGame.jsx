@@ -30,6 +30,11 @@ export default function OfflineGame() {
   const moveTimerIntervalRef = useRef(null);
   const moveTimerAutoMoveRef = useRef(null);
 
+  // Roll Timer Feature (10-second countdown — auto-rolls if player doesn't tap)
+  const [rollTimerSeconds, setRollTimerSeconds] = useState(10);
+  const rollTimerIntervalRef = useRef(null);
+  const autoRollInProgressRef = useRef(false);
+
   const handleSelectTheme = (tId) => {
     sound.playClick();
     setThemeName(tId);
@@ -67,11 +72,15 @@ export default function OfflineGame() {
     setGameStarted(true);
   };
 
-  // Roll Dice (1.3s animation matching Dice.jsx)
-  const handleRollDice = () => {
+  // Roll Dice (1.5s animation matching Dice.jsx)
+  const handleRollDice = (isAutoRoll = false) => {
     if (!engine || diceRolling) return;
     const current = gameState.players[gameState.currentTurnIndex];
-    if (current.isBot) return;
+    if (!isAutoRoll && current.isBot) return;
+
+    // Clear roll timer immediately
+    if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
+    autoRollInProgressRef.current = false;
 
     setDiceRolling(true);
     sound.playDiceRoll();
@@ -82,8 +91,39 @@ export default function OfflineGame() {
       setDiceRolling(false);
       if (rollRes) {
         setGameState(rollRes.gameState);
+
+        // If auto-roll and there are valid moves, auto-pick the best one
+        if (isAutoRoll && rollRes.validTokens && rollRes.validTokens.length > 0) {
+          setTimeout(() => {
+            const bestToken = getBestAutoMove(rollRes.gameState, current.playerIndex, rollRes.diceValue);
+            if (bestToken !== null) {
+              handleSelectTokenDirect(rollRes.gameState, engine, bestToken);
+            }
+          }, 900);
+        }
       }
-    }, 1300);
+    }, 1500);
+  };
+
+  // Select and Move Token (direct with explicit refs for auto-move)
+  const handleSelectTokenDirect = (currentState, eng, tokenId) => {
+    if (!eng) return;
+    const moveRes = eng.moveToken(tokenId);
+    if (moveRes) {
+      setGameState(moveRes.gameState);
+      if (moveRes.outcome?.captures?.length > 0) {
+        sound.playCapture();
+        triggerHaptic('heavy');
+      } else {
+        sound.playMove();
+        triggerHaptic('light');
+      }
+      if (moveRes.gameOver) {
+        sound.playVictory();
+        triggerHaptic('victory');
+        confetti({ particleCount: 160, spread: 85, origin: { y: 0.6 } });
+      }
+    }
   };
 
   // Select and Move Token
@@ -94,60 +134,45 @@ export default function OfflineGame() {
     setMoveTimerActive(false);
 
     if (!engine) return;
-
-    const moveRes = engine.moveToken(tokenId);
-    if (moveRes) {
-      setGameState(moveRes.gameState);
-      if (moveRes.outcome?.captures?.length > 0) {
-        sound.playCapture();
-        triggerHaptic('heavy');
-      } else {
-        sound.playMove();
-        triggerHaptic('light');
-      }
-
-      if (moveRes.gameOver) {
-        sound.playVictory();
-        triggerHaptic('victory');
-        confetti({ particleCount: 160, spread: 85, origin: { y: 0.6 } });
-      }
-    }
+    handleSelectTokenDirect(gameState, engine, tokenId);
   };
 
-  // 60s Turn Inactivity Fallback Timer
+  // 10-Second Roll Timer — auto-rolls if human player doesn't tap the dice
   useEffect(() => {
-    if (!gameStarted || !gameState || gameState.phase === 'GAME_OVER') return;
+    if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
+    autoRollInProgressRef.current = false;
 
-    const timeoutLimit = 60;
-    const startTime = gameState.turnStartTime || Date.now();
+    if (!gameStarted || !gameState || gameState.phase !== 'WAITING_ROLL') {
+      setRollTimerSeconds(10);
+      return;
+    }
 
-    const calculateRemaining = () => {
+    const currentPlayer = gameState.players[gameState.currentTurnIndex];
+    if (!currentPlayer || currentPlayer.isBot) {
+      setRollTimerSeconds(10);
+      return;
+    }
+
+    const TOTAL = 10;
+    setRollTimerSeconds(TOTAL);
+
+    const startTime = Date.now();
+    rollTimerIntervalRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      return Math.max(0, timeoutLimit - elapsed);
-    };
+      const remaining = Math.max(0, TOTAL - elapsed);
+      setRollTimerSeconds(remaining);
 
-    setRemainingSeconds(calculateRemaining());
-
-    const timerInterval = setInterval(() => {
-      const rem = calculateRemaining();
-      setRemainingSeconds(rem);
-
-      const currentPlayer = gameState.players[gameState.currentTurnIndex];
-      const isHumanTurn = !currentPlayer?.isBot;
-
-      if (rem <= 0 && isHumanTurn) {
-        clearInterval(timerInterval);
-        if (gameState.phase === 'WAITING_ROLL') {
-          handleRollDice();
-        } else if (gameState.phase === 'WAITING_MOVE' && gameState.validMoves?.length > 0) {
-          const best = getBestAutoMove(engine.getState(), currentPlayer.playerIndex, gameState.diceValue);
-          if (best !== null) handleSelectToken(best);
-        }
+      if (remaining <= 0 && !autoRollInProgressRef.current) {
+        clearInterval(rollTimerIntervalRef.current);
+        autoRollInProgressRef.current = true;
+        handleRollDice(true); // auto-roll with auto-move
       }
-    }, 1000);
+    }, 500);
 
-    return () => clearInterval(timerInterval);
-  }, [gameStarted, gameState?.currentTurnIndex, gameState?.turnStartTime, gameState?.phase, gameState?.validMoves]);
+    return () => {
+      if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
+    };
+  }, [gameStarted, gameState?.currentTurnIndex, gameState?.phase]);
 
   // Move Countdown Timer (6s countdown for WAITING_MOVE with smart priority auto-move fallback)
   useEffect(() => {
@@ -363,10 +388,10 @@ export default function OfflineGame() {
   const currentPlayer = gameState.players[gameState.currentTurnIndex];
   const isHumanTurn = !currentPlayer?.isBot;
   const isWaitingRoll = gameState.phase === 'WAITING_ROLL';
-  const isUrgent = remainingSeconds <= 10;
+  const isRollUrgent = rollTimerSeconds <= 3;
 
   return (
-    <div className="min-h-screen bg-budo-bg flex flex-col items-center select-none overflow-x-hidden">
+    <div className="h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden">
       {/* Header */}
       <header className="w-full max-w-md md:max-w-2xl px-3 py-2 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
         <button
@@ -379,11 +404,6 @@ export default function OfflineGame() {
         <div className="text-center flex flex-col items-center">
           <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-purple-400">
             <span>Offline Match ({difficulty.toUpperCase()})</span>
-            <span>•</span>
-            <span className={`inline-flex items-center gap-0.5 font-mono font-black ${isUrgent ? 'text-red-400 animate-pulse' : 'text-amber-400'}`}>
-              <Clock className="w-3 h-3" />
-              {remainingSeconds}s
-            </span>
           </div>
           <div className="text-xs font-black text-amber-400">
             {currentPlayer?.username}'s Turn
@@ -411,102 +431,26 @@ export default function OfflineGame() {
       </header>
 
       {/* Main Board Arena */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-start p-2 gap-2">
-        {/* Opponents Strip */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-1.5">
-          {gameState.players.map((p, idx) => (
-            <PlayerCard
-              key={idx}
-              player={p}
-              isCurrentTurn={gameState.currentTurnIndex === idx}
-              isWinner={gameState.winner?.userId === p.userId}
-              compact={true}
-              remainingSeconds={remainingSeconds}
-              moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
-            />
-          ))}
-        </div>
-
-        {/* Quick In-Game Board Theme Switcher */}
-        <div className="w-full flex items-center justify-between gap-1 bg-slate-950/60 border border-slate-800/80 rounded-2xl px-2.5 py-1.5 backdrop-blur-sm overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0 mr-1">
-            <Palette className="w-3.5 h-3.5 text-purple-400" />
-            <span>Theme:</span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            {Object.values(BOARD_THEMES).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => handleSelectTheme(t.id)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all active:scale-90 ${
-                  themeName === t.id
-                    ? 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-300'
-                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 border border-slate-800'
-                }`}
-              >
-                <span>{t.icon}</span>
-                <span className="hidden sm:inline">{t.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Active Turn Controls & 3D Rolling Dice - Attached snug directly above board */}
-        <div className="w-full bg-slate-900/95 border border-slate-800/90 rounded-2xl p-2.5 flex items-center justify-between shadow-2xl backdrop-blur-md">
-          <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <img
-                src={currentPlayer?.avatarUrl}
-                alt="Player"
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 object-cover bg-slate-800 shadow-md"
-                style={{ borderColor: currentPlayer?.color.hex }}
-              />
-              <span
-                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border border-slate-900 shadow-sm"
-                style={{ backgroundColor: currentPlayer?.color.hex }}
-              ></span>
-            </div>
-            <div>
-              <div className="text-xs font-black text-white flex items-center gap-1.5">
-                <span>{currentPlayer?.username}</span>
-                {isHumanTurn && (
-                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 animate-pulse">
-                    YOU
-                  </span>
-                )}
-                {moveTimerActive && (
-                  <span
-                    className="text-[10px] font-mono font-black px-2 py-0.5 rounded-full text-white animate-pulse shadow-md"
-                    style={{ backgroundColor: currentPlayer?.color.hex, boxShadow: `0 0 10px ${currentPlayer?.color.hex}` }}
-                  >
-                    ⏱️ {moveTimerSeconds}s
-                  </span>
-                )}
-              </div>
-              <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                {isWaitingRoll && (isHumanTurn ? '👉 Tap 3D Dice to roll' : '🤖 Bot thinking...')}
-                {gameState.phase === 'WAITING_MOVE' && (isHumanTurn ? (gameState.validMoves?.length === 1 ? '⚡ Auto-moving coin...' : '✨ Choose glowing coin') : '🤖 Bot moving...')}
-              </div>
-            </div>
-          </div>
-
-          <Dice
-            value={gameState.diceValue}
-            isRolling={diceRolling}
-            disabled={!isHumanTurn || !isWaitingRoll}
-            onRoll={handleRollDice}
-            playerColor={currentPlayer?.color.hex}
-          />
-        </div>
-
-        {/* Dynamic Ludo Board with Theme & Step-by-Step Hop Animation */}
-        <div className="w-full flex items-center justify-center">
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-2 gap-2 min-h-0 overflow-hidden">
+        {/* Dynamic Ludo Board with Theme & Step-by-Step Hop Animation + embedded Dice */}
+        <div className="w-full flex items-center justify-center flex-1 min-h-0">
           <LudoBoard
             gameState={gameState}
             onSelectToken={handleSelectToken}
             validTokens={isHumanTurn ? gameState.validMoves : []}
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
+            diceNode={
+              <Dice
+                value={gameState.diceValue}
+                isRolling={diceRolling}
+                disabled={!isHumanTurn || !isWaitingRoll}
+                onRoll={handleRollDice}
+                playerColor={currentPlayer?.color.hex}
+                timerSeconds={isHumanTurn && isWaitingRoll ? rollTimerSeconds : null}
+                isUrgent={isRollUrgent}
+              />
+            }
           />
         </div>
       </main>

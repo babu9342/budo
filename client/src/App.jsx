@@ -29,7 +29,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-budo-bg text-slate-100 flex flex-col font-sans">
+      <div className="h-full bg-budo-bg text-slate-100 flex flex-col font-sans overflow-hidden">
         <Routes>
           <Route path="/splash" element={<Splash />} />
           <Route path="/login" element={<Login />} />
