@@ -261,6 +261,7 @@ export default function GamePlay() {
     );
   }
 
+  const myPlayerIndex = gameState.players.findIndex(p => p.userId === user?.id);
   const currentPlayer = gameState.players[gameState.currentTurnIndex];
   const isMyTurn = currentPlayer?.userId === user?.id;
   const isWaitingRoll = gameState.phase === 'WAITING_ROLL';
@@ -367,6 +368,7 @@ export default function GamePlay() {
             validTokens={isMyTurn ? validTokens : []}
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
+            myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
             diceNode={
               <Dice
                 value={gameState.diceValue}

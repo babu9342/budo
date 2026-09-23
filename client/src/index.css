@@ -186,6 +186,44 @@ html, body {
   animation: diceLandPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+/* Dice Six — fast upward jump animation (2x speed) */
+@keyframes diceSixJump {
+  0%   { transform: translateY(0) scale(1); }
+  20%  { transform: translateY(-20px) scale(1.15) rotate(-4deg); }
+  40%  { transform: translateY(-32px) scale(1.22) rotate(4deg); }
+  60%  { transform: translateY(-18px) scale(1.12) rotate(-2deg); }
+  78%  { transform: translateY(-8px) scale(1.06); }
+  90%  { transform: translateY(-2px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.animate-dice-six-jump {
+  animation: diceSixJump 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* New Coin Entry Flash — pulsing glow ring around coin indicator */
+@keyframes coinEntryFlash {
+  0%   { transform: scale(0.4) translateY(10px); opacity: 0; }
+  40%  { transform: scale(1.15) translateY(-4px); opacity: 1; }
+  65%  { transform: scale(0.95) translateY(0); opacity: 1; }
+  80%  { transform: scale(1.05) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-coin-entry {
+  animation: coinEntryFlash 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Coin entry glow ring pulse */
+@keyframes coinGlowPulse {
+  0%, 100% { box-shadow: 0 0 10px 3px rgba(250, 204, 21, 0.7), 0 0 24px 8px rgba(250, 204, 21, 0.3); }
+  50% { box-shadow: 0 0 20px 6px rgba(250, 204, 21, 1), 0 0 40px 14px rgba(250, 204, 21, 0.55); }
+}
+
+.animate-coin-glow {
+  animation: coinGlowPulse 0.7s ease-in-out infinite;
+}
+
 /* Dice corner appear: fade + scale in when dice moves to a new player's corner */
 @keyframes diceCornerAppear {
   0% {

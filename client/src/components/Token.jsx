@@ -10,7 +10,8 @@ export default function Token({
   isCaptured = false,
   onClick,
   stackCount = 1,
-  size = 'md'
+  size = 'md',
+  counterRotation = 0
 }) {
   const handleClick = (e) => {
     e.stopPropagation();
@@ -53,7 +54,10 @@ export default function Token({
     >
       {/* Large Glowing Move Indicator Arrow (2x Size, Bright Yellow/White with Dark Outline & 800ms Pulse) */}
       {isValidMove && !isHopping && !isCaptured && (
-        <div className="absolute -top-8 sm:-top-9 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-indicator-pulse flex flex-col items-center">
+        <div
+          className="absolute -top-8 sm:-top-9 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-indicator-pulse flex flex-col items-center origin-bottom"
+          style={counterRotation ? { transform: `translateX(-50%) rotate(${-counterRotation}deg)` } : undefined}
+        >
           <svg
             className="w-7 h-7 sm:w-8 sm:h-8 filter drop-shadow-[0_0_10px_rgba(250,204,21,0.95)] drop-shadow-[0_3px_5px_rgba(0,0,0,0.9)]"
             viewBox="0 0 24 24"
@@ -95,7 +99,10 @@ export default function Token({
 
         {/* Stack Multiplier Badge */}
         {stackCount > 1 && !isHopping && !isCaptured && (
-          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-950 text-white text-[9px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg">
+          <span
+            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-950 text-white text-[9px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg"
+            style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+          >
             {stackCount}
           </span>
         )}

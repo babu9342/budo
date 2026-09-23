@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Token from './Token';
 import { getGlobalPosition } from '../game/rules';
+import { getBoardRotation } from '../game/board';
 import { BOARD_THEMES } from '../game/boardThemes';
 import { sound } from '../utils/soundEngine';
+import { triggerHaptic } from '../utils/haptics';
 
 export default function LudoBoard({
   gameState,
@@ -10,13 +12,16 @@ export default function LudoBoard({
   validTokens = [],
   themeName = 'classic',
   moveTimer = null,
-  diceNode = null
+  diceNode = null,
+  myPlayerIndex = null
 }) {
   if (!gameState) return null;
 
   const currentTheme = BOARD_THEMES[themeName] || BOARD_THEMES.classic;
   const playerCount = gameState.players.length;
   const config = gameState.config;
+  const boardRotation = getBoardRotation(myPlayerIndex, gameState.players);
+
 
   const [animatingPositions, setAnimatingPositions] = useState({});
   const [hoppingToken, setHoppingToken] = useState(null);
@@ -230,6 +235,7 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               diceNode={diceNode}
+              boardRotation={boardRotation}
             />
           </div>
         </div>
@@ -251,6 +257,7 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               diceNode={diceNode}
+              boardRotation={boardRotation}
             />
           ) : (
             <RadialMultiPlayerBoard
@@ -263,6 +270,7 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               diceNode={diceNode}
+              myPlayerIndex={myPlayerIndex}
             />
           )}
         </div>
@@ -282,7 +290,8 @@ function Classic4PlayerBoard({
   onSelectToken,
   theme,
   moveTimer,
-  diceNode
+  diceNode,
+  boardRotation = 0
 }) {
   const trackCoordMap = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], // 0-4 (Red start at 0 is [6,1])
@@ -324,8 +333,12 @@ function Classic4PlayerBoard({
 
   return (
     <div
-      className={`w-full h-full grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder}`}
-      style={{ gap: '1px', backgroundColor: gapBg }}
+      className={`w-full h-full grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
+      style={{
+        gap: '1px',
+        backgroundColor: gapBg,
+        transform: `rotate(${boardRotation}deg)`
+      }}
     >
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
       <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
@@ -344,12 +357,13 @@ function Classic4PlayerBoard({
           isCurrentTurn={gameState.currentTurnIndex === redPlayer?.playerIndex}
           moveTimer={moveTimer}
           diceNode={gameState.currentTurnIndex === redPlayer?.playerIndex ? diceNode : null}
+          counterRotation={boardRotation}
         />
       </div>
 
       {/* 2. TOP-MIDDLE: Top Runway Track (rows 0-5, cols 6-8) */}
       <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
-        {renderSubGrid(0, 5, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
+        {renderSubGrid(0, 5, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
@@ -368,12 +382,13 @@ function Classic4PlayerBoard({
           isCurrentTurn={gameState.currentTurnIndex === greenPlayer?.playerIndex}
           moveTimer={moveTimer}
           diceNode={gameState.currentTurnIndex === greenPlayer?.playerIndex ? diceNode : null}
+          counterRotation={boardRotation}
         />
       </div>
 
       {/* 4. MIDDLE-LEFT: Left Runway Track (rows 6-8, cols 0-5) */}
       <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
-        {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
+        {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
       {/* 5. CENTER: Finish Victory Triangles (rows 6-8, cols 6-8) */}
@@ -418,7 +433,7 @@ function Classic4PlayerBoard({
         {theme.isPachisi ? (
           <div className="absolute w-7 h-7 rounded-full flex items-center justify-center z-10"
             style={{ backgroundColor: '#FAF0DC', border: '2.5px solid #8B4513', boxShadow: '0 0 10px rgba(139,69,19,0.6)' }}>
-            <span className="text-[10px]">✦</span>
+            <span className="text-[10px]" style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}>✦</span>
           </div>
         ) : (
           <div className="absolute w-6 h-6 rounded-full bg-black/90 border border-amber-300 flex items-center justify-center shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0" />
@@ -426,19 +441,22 @@ function Classic4PlayerBoard({
         {/* Finish Tokens Stack */}
         <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1 max-w-[85%] max-h-[85%] overflow-hidden">
           {finishOccupants.map((t, idx) => (
-            <Token key={`fin_${idx}`} color={t.color} size="sm" isCaptured={t.isCaptured} stackCount={1} />
+            <Token key={`fin_${idx}`} color={t.color} size="sm" isCaptured={t.isCaptured} stackCount={1} counterRotation={boardRotation} />
           ))}
           {finishOccupants.length === 0 && (
-            <span className={`text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${
-              theme.isPachisi ? 'text-[#8B4513]' : 'text-amber-300'
-            }`}>{theme.isPachisi ? '🪔' : '🏆'}</span>
+            <span
+              className={`text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${
+                theme.isPachisi ? 'text-[#8B4513]' : 'text-amber-300'
+              }`}
+              style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+            >{theme.isPachisi ? '🪔' : '🏆'}</span>
           )}
         </div>
       </div>
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
       <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
-        {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
+        {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
@@ -457,12 +475,13 @@ function Classic4PlayerBoard({
           isCurrentTurn={gameState.currentTurnIndex === bluePlayer?.playerIndex}
           moveTimer={moveTimer}
           diceNode={gameState.currentTurnIndex === bluePlayer?.playerIndex ? diceNode : null}
+          counterRotation={boardRotation}
         />
       </div>
 
       {/* 8. BOTTOM-MIDDLE: Bottom Runway Track (rows 9-14, cols 6-8) */}
       <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
-        {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players)}
+        {renderSubGrid(9, 14, 6, 8, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
@@ -481,6 +500,7 @@ function Classic4PlayerBoard({
           isCurrentTurn={gameState.currentTurnIndex === yellowPlayer?.playerIndex}
           moveTimer={moveTimer}
           diceNode={gameState.currentTurnIndex === yellowPlayer?.playerIndex ? diceNode : null}
+          counterRotation={boardRotation}
         />
       </div>
     </div>
@@ -491,7 +511,7 @@ function Classic4PlayerBoard({
  * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
  * For Pachisi theme: ornate ivory inner square with colored border and larger token circles.
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, diceNode }) {
+function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, diceNode, counterRotation = 0 }) {
   if (!player) {
     return (
       <div className="w-full h-full rounded-xl flex flex-col items-center justify-center"
@@ -499,7 +519,12 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           ? { backgroundColor: 'rgba(250,240,220,0.4)', border: '1px solid rgba(160,82,45,0.4)' }
           : { backgroundColor: 'rgba(2,6,23,0.4)', border: '1px solid rgba(255,255,255,0.1)' }
         }>
-        <span className={`text-[10px] uppercase font-bold ${ theme.isPachisi ? 'text-[#8B4513]' : 'text-slate-400' }`}>Vacant</span>
+        <span
+          className={`text-[10px] uppercase font-bold ${ theme.isPachisi ? 'text-[#8B4513]' : 'text-slate-400' }`}
+          style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+        >
+          Vacant
+        </span>
       </div>
     );
   }
@@ -516,7 +541,10 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
     return (
       <div className="w-full h-full flex flex-col items-center justify-between relative p-1">
         {/* Username badge */}
-        <div className="w-full flex items-center justify-between px-0.5 z-10">
+        <div
+          className="w-full flex items-center justify-between px-0.5 z-10"
+          style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+        >
           <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
             {player.username}
           </span>
@@ -533,7 +561,12 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         {/* Dynamic Dice in active player's corner OR token grid */}
         {diceNode ? (
           <div className="flex-1 flex items-center justify-center w-full">
-            <div className="scale-90 origin-center animate-dice-corner">{diceNode}</div>
+            <div
+              className="scale-90 origin-center animate-dice-corner"
+              style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+            >
+              {diceNode}
+            </div>
           </div>
         ) : (
           /* Ivory inner square with thick colored border */
@@ -577,6 +610,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
                         isCaptured={token.isCaptured}
                         onClick={() => onSelectToken(token.tokenId)}
                         size="sm"
+                        counterRotation={counterRotation}
                       />
                     )}
                   </div>
@@ -595,7 +629,13 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
             />
           </div>
         ) : (
-          <div className="text-[8px] font-black uppercase tracking-widest select-none" style={{ color: '#FAF0DC' }}>
+          <div
+            className="text-[8px] font-black uppercase tracking-widest select-none"
+            style={{
+              color: '#FAF0DC',
+              transform: counterRotation ? `rotate(${-counterRotation}deg)` : undefined
+            }}
+          >
             {colorName}
           </div>
         )}
@@ -612,7 +652,10 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
       )}
 
       {/* Header with Username & Move Timer Badge */}
-      <div className="w-full flex items-center justify-between px-1 z-10">
+      <div
+        className="w-full flex items-center justify-between px-1 z-10"
+        style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+      >
         <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
           {player.username}
         </span>
@@ -634,7 +677,12 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
       {/* Dynamic Dice in active player's corner OR token grid */}
       {diceNode ? (
         <div className="flex-1 flex items-center justify-center w-full">
-          <div className="scale-90 origin-center animate-dice-corner">{diceNode}</div>
+          <div
+            className="scale-90 origin-center animate-dice-corner"
+            style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+          >
+            {diceNode}
+          </div>
         </div>
       ) : (
         /* Inset Base Square with Diamond Pips */
@@ -680,6 +728,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
                       isCaptured={token.isCaptured}
                       onClick={() => onSelectToken(token.tokenId)}
                       size="sm"
+                      counterRotation={counterRotation}
                     />
                   )}
                 </div>
@@ -702,7 +751,10 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           />
         </div>
       ) : (
-        <div className="text-[9px] font-bold text-white/80 uppercase tracking-widest drop-shadow-sm select-none">
+        <div
+          className="text-[9px] font-bold text-white/80 uppercase tracking-widest drop-shadow-sm select-none"
+          style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+        >
           {colorName}
         </div>
       )}
@@ -715,7 +767,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
  */
 function renderSubGrid(
   rStart, rEnd, cStart, cEnd,
-  trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, players
+  trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, players, counterRotation = 0
 ) {
   const cells = [];
   for (let r = rStart; r <= rEnd; r++) {
@@ -778,7 +830,10 @@ function renderSubGrid(
         >
           {/* Safe Star Indicator */}
           {isSafe && occupants.length === 0 && (
-            <span className={`text-[10px] md:text-xs font-black select-none ${theme.starColor}`}>★</span>
+            <span
+              className={`text-[10px] md:text-xs font-black select-none ${theme.starColor}`}
+              style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+            >★</span>
           )}
 
           {/* Starting Arrow Indicator (if safe star not present) */}
@@ -806,6 +861,7 @@ function renderSubGrid(
                     onClick={() => onSelectToken(occ.tokenId)}
                     stackCount={occupants.length}
                     size="sm"
+                    counterRotation={counterRotation}
                   />
                 </div>
               ))}
@@ -828,8 +884,13 @@ function RadialMultiPlayerBoard({
   finishOccupants,
   onSelectToken,
   playerCount,
-  theme
+  theme,
+  moveTimer,
+  diceNode,
+  myPlayerIndex = null
 }) {
+  const baseOffset = (myPlayerIndex !== null && myPlayerIndex !== undefined && myPlayerIndex >= 0) ? myPlayerIndex : 0;
+
   return (
     <div className="w-full h-full relative flex items-center justify-center p-2">
       {/* Central Finish Hub */}
@@ -847,7 +908,8 @@ function RadialMultiPlayerBoard({
 
       {/* Radial Players Yards & Track Spokes */}
       {gameState.players.map((player, pIdx) => {
-        const angle = (pIdx * (360 / playerCount)) * (Math.PI / 180);
+        const relativeIdx = (pIdx - baseOffset + playerCount) % playerCount;
+        const angle = (relativeIdx * (360 / playerCount) + 90) * (Math.PI / 180);
         const radius = 37;
         const x = 50 + radius * Math.cos(angle);
         const y = 50 + radius * Math.sin(angle);
@@ -885,3 +947,4 @@ function RadialMultiPlayerBoard({
     </div>
   );
 }
+

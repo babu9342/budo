@@ -7,7 +7,11 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
   const [isLandingPop, setIsLandingPop] = useState(false);
   const [displayValue, setDisplayValue] = useState(value || 6);
   const [hasEntered, setHasEntered] = useState(false);
+  const [isSixJump, setIsSixJump] = useState(false);
+  const [showCoinEntry, setShowCoinEntry] = useState(false);
   const prevDisabledRef = useRef(disabled);
+  const sixJumpTimeoutRef = useRef(null);
+  const coinEntryTimeoutRef = useRef(null);
 
   // Trigger drop bounce when it becomes player's active turn
   useEffect(() => {
@@ -29,6 +33,8 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
     if (isRolling) {
       setInternalRoll(true);
       setIsLandingPop(false);
+      setShowCoinEntry(false);
+      setIsSixJump(false);
       sound.playDiceRoll();
       triggerHaptic('medium');
 
@@ -45,6 +51,21 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
         // Landing Pop & Glow Flash
         setIsLandingPop(true);
         setTimeout(() => setIsLandingPop(false), 500);
+
+        // Six: trigger fast upward jump (2x speed) + show coin entry indicator
+        if (value === 6) {
+          if (sixJumpTimeoutRef.current) clearTimeout(sixJumpTimeoutRef.current);
+          if (coinEntryTimeoutRef.current) clearTimeout(coinEntryTimeoutRef.current);
+
+          setIsSixJump(true);
+          setShowCoinEntry(true);
+          triggerHaptic('heavy');
+
+          // Reset jump class after animation completes (~0.38s × 2 bounces)
+          sixJumpTimeoutRef.current = setTimeout(() => setIsSixJump(false), 800);
+          // Hide coin entry badge after 2s
+          coinEntryTimeoutRef.current = setTimeout(() => setShowCoinEntry(false), 2000);
+        }
       }, 1500);
 
       return () => {
@@ -131,6 +152,24 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
 
   return (
     <div className="flex flex-col items-center justify-center select-none relative">
+
+      {/* ✨ New Coin Entry Banner — appears when 6 is rolled, coin can enter the board */}
+      {showCoinEntry && !internalRoll && !isRolling && (
+        <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-30 animate-coin-entry flex flex-col items-center gap-0.5 pointer-events-none">
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide text-slate-950 whitespace-nowrap animate-coin-glow"
+            style={{ background: 'linear-gradient(135deg, #FDE047, #F59E0B, #FBBF24)' }}
+          >
+            <span className="text-base leading-none">🪙</span>
+            <span>New Coin Enters!</span>
+          </div>
+          {/* Small downward triangle pointer */}
+          <svg className="w-3 h-2" viewBox="0 0 12 8" fill="#FBBF24">
+            <path d="M6 8L0 0h12z" />
+          </svg>
+        </div>
+      )}
+
       {/* Bonus Roll 6 Badge */}
       {isSix && !disabled && !internalRoll && (
         <span className="absolute -top-5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-red-500 text-white font-black text-[9px] uppercase tracking-wider shadow-[0_0_14px_rgba(245,158,11,0.9)] animate-bounce z-20 whitespace-nowrap">
@@ -151,6 +190,8 @@ export default function Dice({ value, isRolling, disabled, onRoll, playerColor =
         }}
         className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-[#18181b] border-2 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-90 ${
           hasEntered ? 'animate-dice-drop' : ''
+        } ${
+          isSixJump && !internalRoll && !isRolling ? 'animate-dice-six-jump' : ''
         } ${
           isLandingPop ? 'animate-dice-pop ring-4 ring-white' : ''
         } ${

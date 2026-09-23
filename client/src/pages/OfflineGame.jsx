@@ -440,6 +440,7 @@ export default function OfflineGame() {
             validTokens={isHumanTurn ? gameState.validMoves : []}
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
+            myPlayerIndex={gameMode === 'local_pass' ? gameState.currentTurnIndex : 0}
             diceNode={
               <Dice
                 value={gameState.diceValue}

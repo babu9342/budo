@@ -86,3 +86,28 @@ export function getBoardConfig(playerCount = 4) {
   if (playerCount <= 6) return BOARD_CONFIGS[6];
   return BOARD_CONFIGS[8];
 }
+
+/**
+ * Calculates the CSS rotation degrees so that the specified player's home yard
+ * is oriented at the bottom-left of their view.
+ * 
+ * In standard 4-player board layout:
+ * - Red is top-left     -> rotate 270deg brings Red to bottom-left
+ * - Green is top-right   -> rotate 180deg brings Green to bottom-left
+ * - Yellow is bottom-right -> rotate 90deg brings Yellow to bottom-left
+ * - Blue is bottom-left  -> rotate 0deg keeps Blue at bottom-left
+ */
+export function getBoardRotation(myPlayerIndex, players) {
+  if (myPlayerIndex === null || myPlayerIndex === undefined || !players || !players[myPlayerIndex]) {
+    return 0;
+  }
+  const colorKey = players[myPlayerIndex]?.color?.key;
+  const ROTATION_MAP = {
+    blue: 0,
+    yellow: 90,
+    green: 180,
+    red: 270
+  };
+  return ROTATION_MAP[colorKey] ?? 0;
+}
+
