@@ -12,7 +12,6 @@ export default function LudoBoard({
   validTokens = [],
   themeName = 'classic',
   moveTimer = null,
-  diceNode = null,
   myPlayerIndex = null
 }) {
   if (!gameState) return null;
@@ -234,7 +233,6 @@ export default function LudoBoard({
               onSelectToken={onSelectToken}
               theme={currentTheme}
               moveTimer={moveTimer}
-              diceNode={diceNode}
               boardRotation={boardRotation}
             />
           </div>
@@ -256,7 +254,6 @@ export default function LudoBoard({
               onSelectToken={onSelectToken}
               theme={currentTheme}
               moveTimer={moveTimer}
-              diceNode={diceNode}
               boardRotation={boardRotation}
             />
           ) : (
@@ -269,7 +266,6 @@ export default function LudoBoard({
               playerCount={playerCount}
               theme={currentTheme}
               moveTimer={moveTimer}
-              diceNode={diceNode}
               myPlayerIndex={myPlayerIndex}
             />
           )}
@@ -290,7 +286,6 @@ function Classic4PlayerBoard({
   onSelectToken,
   theme,
   moveTimer,
-  diceNode,
   boardRotation = 0
 }) {
   const trackCoordMap = [
@@ -356,7 +351,6 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === redPlayer?.playerIndex}
           moveTimer={moveTimer}
-          diceNode={gameState.currentTurnIndex === redPlayer?.playerIndex ? diceNode : null}
           counterRotation={boardRotation}
         />
       </div>
@@ -381,7 +375,6 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === greenPlayer?.playerIndex}
           moveTimer={moveTimer}
-          diceNode={gameState.currentTurnIndex === greenPlayer?.playerIndex ? diceNode : null}
           counterRotation={boardRotation}
         />
       </div>
@@ -474,7 +467,6 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === bluePlayer?.playerIndex}
           moveTimer={moveTimer}
-          diceNode={gameState.currentTurnIndex === bluePlayer?.playerIndex ? diceNode : null}
           counterRotation={boardRotation}
         />
       </div>
@@ -499,7 +491,6 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === yellowPlayer?.playerIndex}
           moveTimer={moveTimer}
-          diceNode={gameState.currentTurnIndex === yellowPlayer?.playerIndex ? diceNode : null}
           counterRotation={boardRotation}
         />
       </div>
@@ -511,7 +502,7 @@ function Classic4PlayerBoard({
  * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
  * For Pachisi theme: ornate ivory inner square with colored border and larger token circles.
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, diceNode, counterRotation = 0 }) {
+function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, counterRotation = 0 }) {
   if (!player) {
     return (
       <div className="w-full h-full rounded-xl flex flex-col items-center justify-center"
@@ -558,67 +549,55 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           )}
         </div>
 
-        {/* Dynamic Dice in active player's corner OR token grid */}
-        {diceNode ? (
-          <div className="flex-1 flex items-center justify-center w-full">
-            <div
-              className="scale-90 origin-center animate-dice-corner"
-              style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
-            >
-              {diceNode}
-            </div>
-          </div>
-        ) : (
-          /* Ivory inner square with thick colored border */
+        {/* Ivory inner square with thick colored border & 2x2 token grid */}
+        <div
+          className="w-[84%] aspect-square flex items-center justify-center relative shadow-lg"
+          style={{
+            backgroundColor: '#FAF0DC',
+            border: `3px solid ${colorHex}`,
+            boxShadow: `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
+            borderRadius: '6px'
+          }}
+        >
+          {/* Inner decorative ring */}
           <div
-            className="w-[84%] aspect-square flex items-center justify-center relative shadow-lg"
+            className="absolute inset-[6px]"
             style={{
-              backgroundColor: '#FAF0DC',
-              border: `3px solid ${colorHex}`,
-              boxShadow: `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
-              borderRadius: '6px'
+              border: '1.5px solid rgba(139,69,19,0.4)',
+              borderRadius: '4px',
+              pointerEvents: 'none'
             }}
-          >
-            {/* Inner decorative ring */}
-            <div
-              className="absolute inset-[6px]"
-              style={{
-                border: '1.5px solid rgba(139,69,19,0.4)',
-                borderRadius: '4px',
-                pointerEvents: 'none'
-              }}
-            />
-            {/* 2x2 token circles grid */}
-            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
-              {[0, 1, 2, 3].map((slotIdx) => {
-                const token = tokens.find(t => t.tokenId === slotIdx);
-                return (
-                  <div
-                    key={slotIdx}
-                    className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border-2 transition-transform"
-                    style={{ backgroundColor: '#FAF0DC', borderColor: colorHex }}
-                  >
-                    {!token && (
-                      <div className="w-2.5 h-2.5 rounded-full opacity-80"
-                        style={{ backgroundColor: colorHex }} />
-                    )}
-                    {token && (
-                      <Token
-                        color={token.color}
-                        isValidMove={token.isValid}
-                        isHopping={token.isHopping}
-                        isCaptured={token.isCaptured}
-                        onClick={() => onSelectToken(token.tokenId)}
-                        size="sm"
-                        counterRotation={counterRotation}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          />
+          {/* 2x2 token circles grid */}
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+            {[0, 1, 2, 3].map((slotIdx) => {
+              const token = tokens.find(t => t.tokenId === slotIdx);
+              return (
+                <div
+                  key={slotIdx}
+                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border-2 transition-transform"
+                  style={{ backgroundColor: '#FAF0DC', borderColor: colorHex }}
+                >
+                  {!token && (
+                    <div className="w-2.5 h-2.5 rounded-full opacity-80"
+                      style={{ backgroundColor: colorHex }} />
+                  )}
+                  {token && (
+                    <Token
+                      color={token.color}
+                      isValidMove={token.isValid}
+                      isHopping={token.isHopping}
+                      isCaptured={token.isCaptured}
+                      onClick={() => onSelectToken(token.tokenId)}
+                      size="sm"
+                      counterRotation={counterRotation}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {/* Move Timer Bar or Color Name */}
         {isMoveTimerActive ? (
@@ -674,69 +653,57 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         )}
       </div>
 
-      {/* Dynamic Dice in active player's corner OR token grid */}
-      {diceNode ? (
-        <div className="flex-1 flex items-center justify-center w-full">
-          <div
-            className="scale-90 origin-center animate-dice-corner"
-            style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
-          >
-            {diceNode}
-          </div>
-        </div>
-      ) : (
-        /* Inset Base Square with Diamond Pips */
+      {/* Inset Base Square with Diamond Pips & 2x2 Token Bases */}
+      <div
+        className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
+          isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
+        }`}
+      >
+        {/* Rotated Diamond Background */}
         <div
-          className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
-            isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
-          }`}
-        >
-          {/* Rotated Diamond Background */}
-          <div
-            className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
-            style={{
-              borderColor: colorHex,
-              backgroundColor: isDarkMode ? `${colorHex}1a` : `${colorHex}25`,
-              boxShadow: isDarkMode ? `0 0 10px ${colorHex}35` : 'none'
-            }}
-          />
+          className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
+          style={{
+            borderColor: colorHex,
+            backgroundColor: isDarkMode ? `${colorHex}1a` : `${colorHex}25`,
+            boxShadow: isDarkMode ? `0 0 10px ${colorHex}35` : 'none'
+          }}
+        />
 
-          {/* 4 Token Bases in 2x2 Dice Pip Grid */}
-          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
-            {[0, 1, 2, 3].map((slotIdx) => {
-              const token = tokens.find(t => t.tokenId === slotIdx);
-              return (
-                <div
-                  key={slotIdx}
-                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
-                  style={{
-                    backgroundColor: isDarkMode ? '#1c1917' : '#F8FAFC',
-                    borderColor: colorHex
-                  }}
-                >
-                  {!token && (
-                    <div
-                      className="w-2.5 h-2.5 rounded-full opacity-70"
-                      style={{ backgroundColor: colorHex, boxShadow: `0 0 6px ${colorHex}` }}
-                    />
-                  )}
-                  {token && (
-                    <Token
-                      color={token.color}
-                      isValidMove={token.isValid}
-                      isHopping={token.isHopping}
-                      isCaptured={token.isCaptured}
-                      onClick={() => onSelectToken(token.tokenId)}
-                      size="sm"
-                      counterRotation={counterRotation}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        {/* 4 Token Bases in 2x2 Dice Pip Grid */}
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+          {[0, 1, 2, 3].map((slotIdx) => {
+            const token = tokens.find(t => t.tokenId === slotIdx);
+            return (
+              <div
+                key={slotIdx}
+                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
+                style={{
+                  backgroundColor: isDarkMode ? '#1c1917' : '#F8FAFC',
+                  borderColor: colorHex
+                }}
+              >
+                {!token && (
+                  <div
+                    className="w-2.5 h-2.5 rounded-full opacity-70"
+                    style={{ backgroundColor: colorHex, boxShadow: `0 0 6px ${colorHex}` }}
+                  />
+                )}
+                {token && (
+                  <Token
+                    color={token.color}
+                    isValidMove={token.isValid}
+                    isHopping={token.isHopping}
+                    isCaptured={token.isCaptured}
+                    onClick={() => onSelectToken(token.tokenId)}
+                    size="sm"
+                    counterRotation={counterRotation}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Shrinking Move Timer Progress Bar */}
       {isMoveTimerActive ? (

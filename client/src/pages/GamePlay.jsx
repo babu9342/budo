@@ -359,8 +359,8 @@ export default function GamePlay() {
       </header>
 
       {/* Main Game Arena */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-2 gap-2 min-h-0 overflow-hidden">
-        {/* Dynamic Ludo Board with Theme & Step-by-Step Animation + embedded Dice */}
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-between p-2 gap-1.5 min-h-0 overflow-hidden">
+        {/* Dynamic Ludo Board with Theme & Step-by-Step Animation */}
         <div className="w-full flex items-center justify-center flex-1 min-h-0">
           <LudoBoard
             gameState={gameState}
@@ -369,18 +369,77 @@ export default function GamePlay() {
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
             myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
-            diceNode={
-              <Dice
-                value={gameState.diceValue}
-                isRolling={diceRolling}
-                disabled={!isMyTurn || !isWaitingRoll}
-                onRoll={handleRollDice}
-                playerColor={currentPlayer?.color?.hex}
-                timerSeconds={isMyTurn && isWaitingRoll ? rollTimerSeconds : null}
-                isUrgent={isRollUrgent}
-              />
-            }
           />
+        </div>
+
+        {/* User Perspective Control Bar (Left: Dice, Right: Turn Status & Guide) */}
+        <div className="w-full max-w-md px-3 py-2 flex items-center justify-between gap-3 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-800 shadow-2xl flex-shrink-0">
+          {/* Left: Perspective Dice */}
+          <div className="flex-shrink-0 flex items-center justify-center">
+            <Dice
+              value={gameState.diceValue}
+              isRolling={diceRolling}
+              disabled={!isMyTurn || !isWaitingRoll}
+              onRoll={handleRollDice}
+              playerColor={currentPlayer?.color?.hex}
+              timerSeconds={isMyTurn && isWaitingRoll ? rollTimerSeconds : null}
+              isUrgent={isRollUrgent}
+            />
+          </div>
+
+          {/* Right: Turn Status & Move Action Guide */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5 truncate">
+                <span
+                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                  style={{ backgroundColor: currentPlayer?.color?.hex }}
+                />
+                <span className="text-xs font-black text-white truncate">
+                  {isMyTurn ? 'Your Turn' : `${currentPlayer?.username}'s Turn`}
+                </span>
+              </div>
+              {isWaitingRoll && isMyTurn && (
+                <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/40 animate-pulse">
+                  ⏱️ {rollTimerSeconds}s
+                </span>
+              )}
+              {isWaitingMove && isMyTurn && (
+                <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full border border-emerald-400/40 animate-pulse">
+                  ⏱️ {moveTimerSeconds}s
+                </span>
+              )}
+            </div>
+
+            <div className="text-[11px] font-bold truncate">
+              {isMyTurn ? (
+                isWaitingRoll ? (
+                  <span className="text-amber-400 flex items-center gap-1 animate-pulse">
+                    👈 Tap Dice to Roll!
+                  </span>
+                ) : isWaitingMove ? (
+                  <span className="text-emerald-400">
+                    🎯 Tap highlighted coin to move!
+                  </span>
+                ) : (
+                  <span className="text-slate-400">Processing move...</span>
+                )
+              ) : (
+                <span className="text-slate-400">
+                  Waiting for {currentPlayer?.username}...
+                </span>
+              )}
+            </div>
+
+            {moveTimerActive && isMyTurn && (
+              <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden border border-white/5">
+                <div
+                  className="h-full bg-emerald-400 rounded-full transition-all duration-200"
+                  style={{ width: `${(moveTimerSeconds / 6) * 100}%` }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
