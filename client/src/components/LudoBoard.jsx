@@ -360,7 +360,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored in the 4 outer corners outside the board grid)
+  // 4 Constant Corner Boxes Configuration (Anchored in the 4 corners of the board container)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -368,7 +368,8 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '0%', left: '0%' }
+      pos: { top: '3%', left: '3%' },
+      anchor: 'translate(0%, 0%)'
     },
     {
       id: 'green',
@@ -376,7 +377,8 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '0%', left: '100%' }
+      pos: { top: '3%', left: '97%' },
+      anchor: 'translate(-100%, 0%)'
     },
     {
       id: 'yellow',
@@ -384,7 +386,8 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '100%', left: '100%' }
+      pos: { top: '97%', left: '97%' },
+      anchor: 'translate(-100%, -100%)'
     },
     {
       id: 'blue',
@@ -392,7 +395,8 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '100%', left: '0%' }
+      pos: { top: '97%', left: '3%' },
+      anchor: 'translate(0%, -100%)'
     }
   ];
 
@@ -538,26 +542,26 @@ function Classic4PlayerBoard({
             key={box.id}
             className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
               isCurrentTurnBox
-                ? 'w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 bg-slate-950/40 border border-slate-800/60 opacity-40'
+                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
             }`}
             style={{
               top: box.pos.top,
               left: box.pos.left,
               borderColor: isCurrentTurnBox ? box.colorHex : 'rgba(255,255,255,0.12)',
               boxShadow: isCurrentTurnBox
-                ? `0 0 25px ${box.colorHex}88, inset 0 0 14px ${box.colorHex}44`
+                ? `0 0 20px ${box.colorHex}88, inset 0 0 10px ${box.colorHex}44`
                 : undefined,
-              transform: `translate(-50%, -50%) rotate(${-boardRotation}deg)`
+              transform: box.anchor
             }}
           >
             {/* Empty Box Placeholder when dice is in another corner */}
             {!isCurrentTurnBox && (
               <div
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-dashed flex items-center justify-center opacity-30"
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
                 style={{ borderColor: box.colorHex }}
               >
-                <span className="text-xs" style={{ color: box.colorHex }}>🎲</span>
+                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
               </div>
             )}
           </div>
@@ -571,7 +575,7 @@ function Classic4PlayerBoard({
           style={{
             top: activeBoxPos.top,
             left: activeBoxPos.left,
-            transform: `translate(-50%, -50%) rotate(${-boardRotation}deg)`,
+            transform: activeBox.anchor,
             transition: 'top 450ms cubic-bezier(0.34, 1.56, 0.64, 1), left 450ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}
         >
@@ -589,7 +593,7 @@ function Classic4PlayerBoard({
       )}
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
-      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
+      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
