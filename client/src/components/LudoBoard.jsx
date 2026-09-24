@@ -246,10 +246,10 @@ export default function LudoBoard({
         </div>
       ) : (
         <div 
-          className={`aspect-square ${currentTheme.boardBg} rounded-3xl p-1.5 md:p-2.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative overflow-hidden backdrop-blur-xl transition-colors duration-500`}
+          className={`aspect-square ${currentTheme.boardBg} rounded-3xl p-2.5 sm:p-3.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative backdrop-blur-xl transition-colors duration-500`}
           style={{
-            width: 'min(calc(100vw - 16px), calc(100dvh - 110px), 520px)',
-            height: 'min(calc(100vw - 16px), calc(100dvh - 110px), 520px)',
+            width: 'min(calc(100vw - 24px), calc(100dvh - 140px), 520px)',
+            height: 'min(calc(100vw - 24px), calc(100dvh - 140px), 520px)',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.04)'
           }}
         >
@@ -360,7 +360,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration
+  // 4 Constant Corner Boxes Configuration (Anchored in the 4 outer corners outside the board grid)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -368,7 +368,7 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '22%', left: '20%' }
+      pos: { top: '0%', left: '0%' }
     },
     {
       id: 'green',
@@ -376,7 +376,7 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '22%', left: '78%' }
+      pos: { top: '0%', left: '100%' }
     },
     {
       id: 'yellow',
@@ -384,7 +384,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '78%', left: '78%' }
+      pos: { top: '100%', left: '100%' }
     },
     {
       id: 'blue',
@@ -392,7 +392,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '78%', left: '20%' }
+      pos: { top: '100%', left: '0%' }
     }
   ];
 
