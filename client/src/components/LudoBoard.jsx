@@ -327,6 +327,7 @@ function Classic4PlayerBoard({
   const safeTrackIndices = [0, 8, 13, 21, 26, 34, 39, 47];
 
   // Resolve players mapped strictly to their matching home color yard
+  // Resolve players mapped strictly to their matching home color yard
   const redPlayer = gameState.players.find(p => p.color?.key === 'red');
   const greenPlayer = gameState.players.find(p => p.color?.key === 'green');
   const yellowPlayer = gameState.players.find(p => p.color?.key === 'yellow');
@@ -339,9 +340,28 @@ function Classic4PlayerBoard({
 
   const gapBg = theme.isPachisi ? '#A0522D' : theme.isDarkMode ? '#2a2a2a' : '#94a3b8';
 
+  // Dynamic Dice Position mapped next to the current turn's home square:
+  // Green's turn -> dice appears to the left of the green home square (col 6-8 top runway)
+  // Yellow's turn -> dice appears to the right of the yellow home square (col 9-14 bottom right)
+  // Blue's turn -> dice appears to the right of the blue home square (col 6-8 bottom runway)
+  // Red's turn -> dice appears to the left of the red home square (col 0-5 top left)
+  const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
+  const turnColor = currentTurnPlayer?.color?.key || 'red';
+
+  let dicePos = { top: '50%', left: '50%' };
+  if (turnColor === 'red') {
+    dicePos = { top: '20%', left: '7%' }; // Left of Red home square
+  } else if (turnColor === 'green') {
+    dicePos = { top: '20%', left: '50%' }; // Left of Green home square
+  } else if (turnColor === 'yellow') {
+    dicePos = { top: '80%', left: '93%' }; // Right of Yellow home square
+  } else if (turnColor === 'blue') {
+    dicePos = { top: '80%', left: '50%' }; // Right of Blue home square
+  }
+
   return (
     <div
-      className={`w-full h-full grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
+      className={`w-full h-full relative grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
       style={{
         gap: '1px',
         backgroundColor: gapBg,
@@ -412,7 +432,7 @@ function Classic4PlayerBoard({
         {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
-      {/* 5. CENTER: Finish Victory Triangles + Embedded Center Dice (rows 6-8, cols 6-8) */}
+      {/* 5. CENTER: Finish Victory Triangles & BUDO Emblem (rows 6-8, cols 6-8) */}
       <div
         className="col-span-3 row-span-3 relative flex items-center justify-center shadow-2xl overflow-hidden rounded-xl"
         style={theme.isPachisi
@@ -450,36 +470,46 @@ function Classic4PlayerBoard({
           </svg>
         </div>
 
-        {/* Finished tokens summary badge */}
-        {finishOccupants.length > 0 && (
-          <div className="absolute top-1 right-1 z-10 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[8px] font-black text-amber-300 border border-amber-400/40 pointer-events-none">
-            🏆 {finishOccupants.length}/4
-          </div>
-        )}
-
-        {/* 🎲 EMBEDDED CENTER DICE */}
-        <div 
-          className="relative z-20 flex items-center justify-center pointer-events-auto"
-          style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
-        >
-          {diceProps ? (
-            <Dice
-              value={diceProps.value}
-              isRolling={diceProps.isRolling}
-              disabled={diceProps.disabled}
-              onRoll={diceProps.onRoll}
-              playerColor={diceProps.playerColor}
-              timerSeconds={diceProps.timerSeconds}
-              isUrgent={diceProps.isUrgent}
-              inCenter={true}
-            />
+        {/* Finished tokens summary badge or center victory emblem */}
+        <div className="relative z-10 flex flex-col items-center justify-center pointer-events-none">
+          {finishOccupants.length > 0 ? (
+            <div className="bg-black/75 backdrop-blur-sm px-2 py-0.5 rounded-full text-[8px] font-black text-amber-300 border border-amber-400/50 shadow-md">
+              🏆 {finishOccupants.length}/4
+            </div>
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-slate-900/90 border border-amber-400/60 flex items-center justify-center shadow-lg">
-              <span className="text-sm">🎲</span>
+            <div className="w-8 h-8 rounded-full bg-slate-950/85 border border-amber-400/60 flex items-center justify-center shadow-lg">
+              <span className="text-amber-400 font-black text-xs">★</span>
             </div>
           )}
+          <span className="text-[7px] font-black uppercase text-amber-300 tracking-wider mt-0.5 drop-shadow">
+            BUDO
+          </span>
         </div>
       </div>
+
+      {/* 🎲 DYNAMIC SLIDING DICE POSITIONED NEXT TO CURRENT TURN'S HOME SQUARE */}
+      {diceProps && (
+        <div 
+          className="absolute z-30 pointer-events-auto flex items-center justify-center"
+          style={{
+            top: dicePos.top,
+            left: dicePos.left,
+            transform: `translate(-50%, -50%) rotate(${-boardRotation}deg)`,
+            transition: 'top 300ms cubic-bezier(0.4, 0, 0.2, 1), left 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
+          <Dice
+            value={diceProps.value}
+            isRolling={diceProps.isRolling}
+            disabled={diceProps.disabled}
+            onRoll={diceProps.onRoll}
+            playerColor={diceProps.playerColor}
+            timerSeconds={diceProps.timerSeconds}
+            isUrgent={diceProps.isUrgent}
+            inCenter={true}
+          />
+        </div>
+      )}
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
       <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>

@@ -43,7 +43,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-budo-bg text-slate-100 flex flex-col overflow-y-auto selection:bg-amber-500 selection:text-black">
+    <div className="w-full h-full flex-1 min-h-0 overflow-y-auto bg-budo-bg text-slate-100 flex flex-col selection:bg-amber-500 selection:text-black">
       {/* Top Navigation Bar */}
       <nav className="w-full max-w-6xl mx-auto px-4 py-4 flex items-center justify-between z-20 border-b border-slate-800/60 bg-budo-bg/80 backdrop-blur-md sticky top-0">
         <div className="flex items-center gap-3">

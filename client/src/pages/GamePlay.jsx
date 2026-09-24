@@ -48,6 +48,43 @@ export default function GamePlay() {
 
   const autoMoveTimerRef = useRef(null);
 
+  const reactionTimerRef = useRef(null);
+  const reactionFadeTimerRef = useRef(null);
+
+  const displayFloatingReaction = (msg, isText = false) => {
+    if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+    if (reactionFadeTimerRef.current) clearTimeout(reactionFadeTimerRef.current);
+
+    const sender = gameState?.players?.find(p => p.userId === msg.userId || p.username === msg.username);
+    const stickerId = `${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
+    const newReaction = {
+      id: stickerId,
+      content: msg.content || msg.message,
+      type: isText ? 'text' : 'sticker',
+      username: msg.username || sender?.username || user?.username || 'Player',
+      avatarUrl: sender?.avatarUrl || user?.avatar_url || '/avatars/default.png',
+      color: sender?.color?.hex || '#F59E0B',
+      playerIndex: sender?.playerIndex !== undefined ? sender.playerIndex : (gameState?.players?.findIndex(p => p.userId === msg.userId) ?? -1),
+      timestamp: Date.now(),
+      isLeaving: false
+    };
+
+    setFloatingStickers([newReaction]);
+    sound.playClick();
+    triggerHaptic('light');
+
+    reactionFadeTimerRef.current = setTimeout(() => {
+      setFloatingStickers((prev) =>
+        prev.map((s) => (s.id === stickerId ? { ...s, isLeaving: true } : s))
+      );
+    }, 2400);
+
+    reactionTimerRef.current = setTimeout(() => {
+      setFloatingStickers([]);
+    }, 2850);
+  };
+
   // Change and persist board theme
   const handleSelectTheme = (tId) => {
     sound.playClick();
@@ -110,41 +147,13 @@ export default function GamePlay() {
     socket.on('chat:message', (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (!chatOpen) setUnreadChat((prev) => prev + 1);
+      displayFloatingReaction(msg, true);
     });
 
     socket.on('chat:sticker', (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (!chatOpen) setUnreadChat((prev) => prev + 1);
-
-      // Resolve player info for floating board overlay
-      const sender = gameState?.players?.find(p => p.userId === msg.userId || p.username === msg.username);
-      const stickerId = `${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-
-      const newSticker = {
-        id: stickerId,
-        content: msg.content,
-        username: msg.username || sender?.username || 'Player',
-        avatarUrl: sender?.avatarUrl || '/avatars/default.png',
-        color: sender?.color?.hex || '#F59E0B',
-        playerIndex: sender?.playerIndex !== undefined ? sender.playerIndex : -1,
-        timestamp: Date.now(),
-        isLeaving: false
-      };
-
-      setFloatingStickers((prev) => [...prev, newSticker]);
-      sound.playClick();
-      triggerHaptic('light');
-
-      // Schedule exit fade at 2.4s and removal at 2.85s
-      setTimeout(() => {
-        setFloatingStickers((prev) =>
-          prev.map((s) => (s.id === stickerId ? { ...s, isLeaving: true } : s))
-        );
-      }, 2400);
-
-      setTimeout(() => {
-        setFloatingStickers((prev) => prev.filter((s) => s.id !== stickerId));
-      }, 2850);
+      displayFloatingReaction(msg, false);
     });
 
     socket.on('chat:audio', (msg) => {

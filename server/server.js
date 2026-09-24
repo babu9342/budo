@@ -51,6 +51,37 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/rankings', rankingRoutes);
 
+// Static Client Serving (Production fallback when Node.js serves client build)
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
+  maxAge: '1y',
+  immutable: true
+}));
+
+app.use(express.static(clientDistPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+
+// SPA Fallback: index.html with no-cache headers
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  const indexPath = path.join(clientDistPath, 'index.html');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(indexPath, (err) => {
+    if (err) next();
+  });
+});
+
 // Socket.IO Server Initialization
 const io = new SocketIOServer(server, {
   cors: {

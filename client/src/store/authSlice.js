@@ -13,7 +13,16 @@ export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async 
   }
 });
 
-const storedUser = localStorage.getItem('budo_user') ? JSON.parse(localStorage.getItem('budo_user')) : null;
+let storedUser = null;
+try {
+  const item = localStorage.getItem('budo_user');
+  if (item && item !== 'undefined' && item !== 'null') {
+    storedUser = JSON.parse(item);
+  }
+} catch (e) {
+  console.warn('Failed to parse budo_user from localStorage:', e);
+  localStorage.removeItem('budo_user');
+}
 
 const authSlice = createSlice({
   name: 'auth',

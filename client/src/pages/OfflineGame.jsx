@@ -27,15 +27,22 @@ export default function OfflineGame() {
   const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
 
-  // Trigger floating reaction on the board
-  const triggerSticker = (content, playerIndex = 0) => {
+  const reactionTimerRef = useRef(null);
+  const reactionFadeTimerRef = useRef(null);
+
+  // Trigger floating reaction on the board (single active, instant replacement)
+  const triggerSticker = (content, playerIndex = 0, isText = false) => {
     if (!gameState) return;
+    if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+    if (reactionFadeTimerRef.current) clearTimeout(reactionFadeTimerRef.current);
+
     const player = gameState.players[playerIndex] || gameState.players[0];
     const stickerId = `${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
 
-    const newSticker = {
+    const newReaction = {
       id: stickerId,
       content,
+      type: isText ? 'text' : 'sticker',
       username: player?.username || 'Player',
       avatarUrl: player?.avatarUrl || '/avatars/default.png',
       color: player?.color?.hex || '#F59E0B',
@@ -44,18 +51,18 @@ export default function OfflineGame() {
       isLeaving: false
     };
 
-    setFloatingStickers((prev) => [...prev, newSticker]);
+    setFloatingStickers([newReaction]);
     sound.playClick();
     triggerHaptic('light');
 
-    setTimeout(() => {
+    reactionFadeTimerRef.current = setTimeout(() => {
       setFloatingStickers((prev) =>
         prev.map((s) => (s.id === stickerId ? { ...s, isLeaving: true } : s))
       );
     }, 2400);
 
-    setTimeout(() => {
-      setFloatingStickers((prev) => prev.filter((s) => s.id !== stickerId));
+    reactionTimerRef.current = setTimeout(() => {
+      setFloatingStickers([]);
     }, 2850);
   };
 
