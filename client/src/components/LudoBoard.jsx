@@ -31,8 +31,17 @@ export default function LudoBoard({
   const [capturedTokens, setCapturedTokens] = useState({});
   const prevPositionsRef = useRef(null);
   const animIntervalRef = useRef(null);
+  const rewindIntervalsRef = useRef({});
 
-  // Step-by-step token hopping animation engine
+  // Clean up all intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (animIntervalRef.current) clearInterval(animIntervalRef.current);
+      Object.values(rewindIntervalsRef.current).forEach(intId => clearInterval(intId));
+    };
+  }, []);
+
+  // Step-by-step token hopping & reverse capture rewind animation engine
   useEffect(() => {
     if (!gameState || !gameState.players) return;
 
@@ -50,27 +59,19 @@ export default function LudoBoard({
     }
 
     const prevMap = prevPositionsRef.current;
-    let forwardMove = null;
 
     // Detect captures (token reset from track >= 0 to -1)
+    const capturedList = [];
     for (const key in prevMap) {
       const oldStep = prevMap[key];
       const newStep = currentMap[key] !== undefined ? currentMap[key] : -1;
       if (oldStep >= 0 && newStep === -1) {
-        sound.playCapture();
-        triggerHaptic('heavy');
-        setCapturedTokens(prev => ({ ...prev, [key]: true }));
-        setTimeout(() => {
-          setCapturedTokens(prev => {
-            const next = { ...prev };
-            delete next[key];
-            return next;
-          });
-        }, 500);
+        capturedList.push({ key, oldStep });
       }
     }
 
     // Detect if any token moved forward
+    let forwardMove = null;
     for (const key in currentMap) {
       const oldStep = prevMap[key] !== undefined ? prevMap[key] : -1;
       const newStep = currentMap[key];
@@ -90,17 +91,63 @@ export default function LudoBoard({
     // Update ref
     prevPositionsRef.current = currentMap;
 
+    // Helper: Runs reverse rewind along the path back to home yard (oldStep -> 0 -> -1)
+    const startRewindAnimation = (caps) => {
+      if (!caps || caps.length === 0) return;
+
+      sound.playCapture();
+      triggerHaptic('heavy');
+
+      caps.forEach((cap) => {
+        setCapturedTokens((prev) => ({ ...prev, [cap.key]: true }));
+
+        let curStep = cap.oldStep;
+        if (rewindIntervalsRef.current[cap.key]) {
+          clearInterval(rewindIntervalsRef.current[cap.key]);
+        }
+
+        // Fast rewind along the exact path traversed (70ms per reverse cell step)
+        rewindIntervalsRef.current[cap.key] = setInterval(() => {
+          curStep -= 1;
+          if (curStep >= 0) {
+            sound.playMove();
+            setAnimatingPositions((prev) => ({ ...prev, [cap.key]: curStep }));
+          } else {
+            // Reached home yard (-1)
+            clearInterval(rewindIntervalsRef.current[cap.key]);
+            delete rewindIntervalsRef.current[cap.key];
+            setCapturedTokens((prev) => {
+              const next = { ...prev };
+              delete next[cap.key];
+              return next;
+            });
+            setAnimatingPositions((prev) => ({ ...prev, [cap.key]: -1 }));
+          }
+        }, 75);
+      });
+    };
+
     if (forwardMove) {
       if (animIntervalRef.current) clearInterval(animIntervalRef.current);
 
       if (forwardMove.type === 'spawn') {
         sound.playMove();
         setHoppingToken(forwardMove.key);
-        setAnimatingPositions(prev => ({ ...prev, [forwardMove.key]: 0 }));
+        setAnimatingPositions((prev) => {
+          const next = { ...prev, [forwardMove.key]: 0 };
+          capturedList.forEach((c) => {
+            next[c.key] = c.oldStep;
+          });
+          return next;
+        });
+
         const t = setTimeout(() => {
           setHoppingToken(null);
-          setAnimatingPositions(currentMap);
-        }, 320);
+          setAnimatingPositions((prev) => ({ ...prev, [forwardMove.key]: 0 }));
+          if (capturedList.length > 0) {
+            startRewindAnimation(capturedList);
+          }
+        }, 300);
         return () => clearTimeout(t);
       } else if (forwardMove.type === 'step_by_step') {
         let currentStep = forwardMove.from;
@@ -109,29 +156,45 @@ export default function LudoBoard({
 
         setHoppingToken(key);
 
-        // Smooth cell-by-cell 320ms hop with easing
+        // Keep captured token visible at its current board position while attacker approaches
+        setAnimatingPositions((prev) => {
+          const next = { ...prev, [key]: currentStep };
+          capturedList.forEach((c) => {
+            next[c.key] = c.oldStep;
+          });
+          return next;
+        });
+
+        // Smooth cell-by-cell forward hop (200ms per cell)
         animIntervalRef.current = setInterval(() => {
           currentStep += 1;
           sound.playMove();
           setHoppingToken(key);
-          setAnimatingPositions(prev => ({ ...prev, [key]: currentStep }));
+          setAnimatingPositions((prev) => ({ ...prev, [key]: currentStep }));
 
           if (currentStep >= targetStep) {
             clearInterval(animIntervalRef.current);
             animIntervalRef.current = null;
             setTimeout(() => {
               setHoppingToken(null);
-              setAnimatingPositions(currentMap);
-            }, 180);
+              // Attacker has arrived: trigger reverse rewind along path for captured token
+              if (capturedList.length > 0) {
+                startRewindAnimation(capturedList);
+              }
+            }, 120);
           }
-        }, 320);
+        }, 200);
 
         return () => {
           if (animIntervalRef.current) clearInterval(animIntervalRef.current);
         };
       }
     } else {
-      setAnimatingPositions(currentMap);
+      if (capturedList.length > 0) {
+        startRewindAnimation(capturedList);
+      } else {
+        setAnimatingPositions(currentMap);
+      }
     }
   }, [gameState]);
 

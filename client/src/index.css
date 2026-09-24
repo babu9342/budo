@@ -107,35 +107,29 @@ html, body {
   z-index: 50 !important;
 }
 
-/* Opponent Token Capture Shake & Fade Out */
-@keyframes captureShakeFade {
+/* Opponent Token Capture Reverse Rewind Animation */
+@keyframes tokenReverseRewind {
   0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
+    transform: scale(1.15) rotate(0deg);
+    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 1));
   }
-  20% {
-    transform: scale(1.25) rotate(-18deg);
-    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
-  }
-  40% {
-    transform: scale(1.1) rotate(18deg);
-  }
-  60% {
-    transform: scale(0.8) rotate(-12deg);
-    opacity: 0.7;
-  }
-  80% {
-    transform: scale(0.4) rotate(6deg);
-    opacity: 0.3;
+  50% {
+    transform: scale(0.9) translateY(-4px) rotate(-180deg);
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
   }
   100% {
-    transform: scale(0) rotate(0deg);
-    opacity: 0;
+    transform: scale(1.15) rotate(-360deg);
+    filter: drop-shadow(0 0 14px rgba(239, 68, 68, 1));
   }
 }
 
+.animate-token-reverse {
+  animation: tokenReverseRewind 0.22s linear infinite;
+  z-index: 50 !important;
+}
+
 .animate-capture-fade {
-  animation: captureShakeFade 0.45s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation: tokenReverseRewind 0.22s linear infinite;
   pointer-events: none;
 }
 
