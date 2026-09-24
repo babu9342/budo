@@ -11,7 +11,7 @@ export default function PlayerCard({
 }) {
   if (!player) return null;
 
-  const finishedCount = player.tokens.filter(step => step >= 57).length;
+  const finishedCount = player.tokens.filter(step => step >= 56).length;
   const isUrgent = isCurrentTurn && remainingSeconds <= 10;
   const isMoveTimerActive = isCurrentTurn && moveTimer?.active;
   const moveSeconds = moveTimer ? moveTimer.seconds : 6;
@@ -138,7 +138,7 @@ export default function PlayerCard({
           <div className="flex items-center gap-1 mt-1">
             {player.tokens.map((step, idx) => {
               let pillColor = 'bg-slate-700'; // Home
-              if (step >= 57) pillColor = 'bg-amber-400 shadow-sm shadow-amber-400/50'; // Finished
+              if (step >= 56) pillColor = 'bg-amber-400 shadow-sm shadow-amber-400/50'; // Finished
               else if (step >= 0) pillColor = 'bg-blue-500'; // Active on track
 
               return (

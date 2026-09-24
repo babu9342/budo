@@ -41,40 +41,40 @@ export const BOARD_CONFIGS = {
     maxPlayers: 2,
     colors: PLAYER_COLORS_2,
     trackLength: 52,
-    homeStretchLength: 6,
-    totalStepsToFinish: 57,
+    homeStretchLength: 5,
+    totalStepsToFinish: 56,
     safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
   },
   3: {
     maxPlayers: 3,
     colors: PLAYER_COLORS_3,
     trackLength: 52,
-    homeStretchLength: 6,
-    totalStepsToFinish: 57,
+    homeStretchLength: 5,
+    totalStepsToFinish: 56,
     safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
   },
   4: {
     maxPlayers: 4,
     colors: PLAYER_COLORS_4,
     trackLength: 52,
-    homeStretchLength: 6,
-    totalStepsToFinish: 57,
+    homeStretchLength: 5,
+    totalStepsToFinish: 56,
     safeTrackIndices: [0, 8, 13, 21, 26, 34, 39, 47]
   },
   6: {
     maxPlayers: 6,
     colors: PLAYER_COLORS_6,
     trackLength: 84,
-    homeStretchLength: 6,
-    totalStepsToFinish: 89,
+    homeStretchLength: 5,
+    totalStepsToFinish: 88,
     safeTrackIndices: [0, 8, 14, 22, 28, 36, 42, 50, 56, 64, 70, 78]
   },
   8: {
     maxPlayers: 8,
     colors: PLAYER_COLORS_8,
     trackLength: 96,
-    homeStretchLength: 6,
-    totalStepsToFinish: 101,
+    homeStretchLength: 5,
+    totalStepsToFinish: 100,
     safeTrackIndices: [0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90]
   }
 };

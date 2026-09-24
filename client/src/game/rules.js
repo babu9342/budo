@@ -14,9 +14,10 @@ export function getGlobalPosition(playerIndex, relativeStep, config) {
   if (relativeStep === -1) return `HOME_BASE_${playerIndex}`;
   if (relativeStep >= config.totalStepsToFinish) return 'FINISH';
 
-  const mainTrackLimit = config.trackLength - 1;
-  if (relativeStep > mainTrackLimit) {
-    const homeStretchIndex = relativeStep - config.trackLength;
+  // Main track limit: 51 steps (0..50). Step 51 enters Home Stretch (3rd box from star -> center line).
+  const mainTrackSteps = config.trackLength - 1;
+  if (relativeStep >= mainTrackSteps) {
+    const homeStretchIndex = relativeStep - mainTrackSteps;
     return `HOME_STRETCH_${playerIndex}_${homeStretchIndex}`;
   }
 
