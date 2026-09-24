@@ -400,6 +400,8 @@ function Classic4PlayerBoard({
   const activeBoxPos = activeBox.pos;
   const activeBoxColor = activeBox.colorHex;
 
+  const gapBg = theme?.isPachisi ? '#5C2A00' : 'rgba(255, 255, 255, 0.08)';
+
   return (
     <div
       className={`w-full h-full relative grid grid-cols-15 grid-rows-15 rounded-2xl p-1 border ${theme.gridBorder} transition-transform duration-500 ease-out`}

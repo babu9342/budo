@@ -19,6 +19,8 @@ import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 function ProtectedRoute({ children }) {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
@@ -36,9 +38,10 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <Router>
-      <div className="h-full bg-budo-bg text-slate-100 flex flex-col font-sans overflow-hidden">
-        <Routes>
+    <ErrorBoundary>
+      <Router>
+        <div className="h-full bg-budo-bg text-slate-100 flex flex-col font-sans overflow-hidden">
+          <Routes>
           {/* Public Landing Page at Root */}
           <Route path="/" element={<Landing />} />
           
@@ -68,5 +71,6 @@ export default function App() {
         </Routes>
       </div>
     </Router>
+  </ErrorBoundary>
   );
 }

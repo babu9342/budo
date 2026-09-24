@@ -98,9 +98,25 @@ export default function GamePlay() {
   useEffect(() => {
     if (!socket) return;
 
+    // Request current game state and ensure socket is in the room channel
     if (!gameState) {
+      socket.emit('room:join', {
+        roomCode: code,
+        roomId: code,
+        user: user || { id: -999, username: 'Player' }
+      });
       socket.emit('game:getState', { roomId: code });
     }
+
+    // Listen to game state sync / reconnect
+    const handleGameState = (data) => {
+      if (data?.game) {
+        dispatch(setGameState(data.game));
+      } else if (data?.gameState) {
+        dispatch(setGameState(data.gameState));
+      }
+    };
+    socket.on('game:state', handleGameState);
 
     // Listen to dice result
     socket.on('dice:result', (data) => {
@@ -162,6 +178,7 @@ export default function GamePlay() {
     });
 
     return () => {
+      socket.off('game:state', handleGameState);
       socket.off('dice:result');
       socket.off('token:update');
       socket.off('game:finish');
@@ -169,7 +186,7 @@ export default function GamePlay() {
       socket.off('chat:sticker');
       socket.off('chat:audio');
     };
-  }, [code, gameState, chatOpen, dispatch, navigate, socket]);
+  }, [code, gameState, chatOpen, dispatch, navigate, socket, user]);
 
   // 60-Second (1 Minute) Live Turn Timer — fallback for WAITING_MOVE only
   useEffect(() => {
@@ -299,8 +316,35 @@ export default function GamePlay() {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-4">
-        <div className="text-sm font-bold text-amber-400 animate-pulse">Loading Budo Match...</div>
+      <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="w-16 h-16 rounded-3xl bg-slate-900 border-2 border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.25)] flex items-center justify-center animate-bounce mb-4">
+          <span className="text-3xl">🎲</span>
+        </div>
+        <h2 className="text-lg font-black text-white tracking-wide">Connecting to Match...</h2>
+        <p className="text-xs text-amber-400/90 font-mono mt-1">Room #{code}</p>
+        <p className="text-[11px] text-slate-400 mt-2 max-w-xs">
+          Synchronizing player state and game board...
+        </p>
+
+        <div className="mt-6 flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (socket) {
+                socket.emit('room:join', { roomCode: code, roomId: code, user: user || { id: -999, username: 'Player' } });
+                socket.emit('game:getState', { roomId: code });
+              }
+            }}
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/30 text-xs font-bold active:scale-95 transition-all shadow-md"
+          >
+            🔄 Retry Sync
+          </button>
+          <button
+            onClick={() => navigate('/game')}
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold active:scale-95 transition-all"
+          >
+            Back to Hub
+          </button>
+        </div>
       </div>
     );
   }
