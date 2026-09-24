@@ -47,10 +47,10 @@ export default function Dice({
       sound.playDiceRoll();
       triggerHaptic('medium');
 
-      // Cycle numbers every 80ms during rolling for ~1.5s
+      // Cycle numbers smoothly every 140ms during rolling for ~1.5s
       const interval = setInterval(() => {
         setDisplayValue(Math.floor(Math.random() * 6) + 1);
-      }, 80);
+      }, 140);
 
       const timeout = setTimeout(() => {
         clearInterval(interval);
