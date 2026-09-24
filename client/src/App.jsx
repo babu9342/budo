@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
+import Landing from './pages/Landing';
 import Splash from './pages/Splash';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -20,7 +21,14 @@ import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }) {
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
+
   if (!user) {
+    // Save the attempted route so user gets redirected after login
+    const returnUrl = location.pathname + location.search;
+    if (returnUrl !== '/login' && returnUrl !== '/') {
+      sessionStorage.setItem('budo_redirect_after_login', returnUrl);
+    }
     return <Navigate to="/login" replace />;
   }
   return children;
@@ -31,19 +39,25 @@ export default function App() {
     <Router>
       <div className="h-full bg-budo-bg text-slate-100 flex flex-col font-sans overflow-hidden">
         <Routes>
+          {/* Public Landing Page at Root */}
+          <Route path="/" element={<Landing />} />
+          
+          {/* Auth Pages */}
           <Route path="/splash" element={<Splash />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
-          {/* Main App Routes */}
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          {/* Protected Game Hub & Lobby Routes */}
+          <Route path="/game" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/play-options" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
           <Route path="/join-room" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
           <Route path="/room/:code" element={<ProtectedRoute><RoomLobby /></ProtectedRoute>} />
           <Route path="/join/:code" element={<JoinRedirect />} />
           <Route path="/game/:code" element={<ProtectedRoute><GamePlay /></ProtectedRoute>} />
+          
+          {/* Offline Play & Utilities */}
           <Route path="/offline" element={<OfflineGame />} />
           <Route path="/result" element={<ProtectedRoute><Result /></ProtectedRoute>} />
           <Route path="/rankings" element={<Leaderboard />} />

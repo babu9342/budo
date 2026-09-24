@@ -49,7 +49,7 @@ export default function Register() {
           sessionStorage.removeItem('budo_redirect_after_login');
           navigate(redirectUrl);
         } else {
-          navigate('/');
+          navigate('/game');
         }
       }
     } catch (err) {

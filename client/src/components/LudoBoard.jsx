@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Token from './Token';
+import Dice from './Dice';
+import StickerOverlay from './StickerOverlay';
 import { getGlobalPosition } from '../game/rules';
 import { getBoardRotation } from '../game/board';
 import { BOARD_THEMES } from '../game/boardThemes';
@@ -12,7 +14,9 @@ export default function LudoBoard({
   validTokens = [],
   themeName = 'classic',
   moveTimer = null,
-  myPlayerIndex = null
+  myPlayerIndex = null,
+  diceProps = null,
+  stickers = []
 }) {
   if (!gameState) return null;
 
@@ -223,7 +227,7 @@ export default function LudoBoard({
           {/* Actual Board */}
           <div
             className={`aspect-square ${currentTheme.boardBg} rounded-2xl p-2 border-4 shadow-2xl relative overflow-hidden transition-colors duration-500`}
-            style={{ width: 'min(84vw, 84dvh, 480px)', borderColor: '#8B4513', boxShadow: '0 8px 40px rgba(92,42,0,0.7), inset 0 0 20px rgba(212,160,23,0.08)' }}
+            style={{ width: 'min(calc(100vw - 20px), calc(100dvh - 120px), 500px)', height: 'min(calc(100vw - 20px), calc(100dvh - 120px), 500px)', borderColor: '#8B4513', boxShadow: '0 8px 40px rgba(92,42,0,0.7), inset 0 0 20px rgba(212,160,23,0.08)' }}
           >
             <Classic4PlayerBoard
               gameState={gameState}
@@ -234,14 +238,18 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               boardRotation={boardRotation}
+              diceProps={diceProps}
             />
+            {/* Floating Sticker Reaction Layer */}
+            <StickerOverlay stickers={stickers} playerCount={playerCount} />
           </div>
         </div>
       ) : (
         <div 
           className={`aspect-square ${currentTheme.boardBg} rounded-3xl p-1.5 md:p-2.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative overflow-hidden backdrop-blur-xl transition-colors duration-500`}
           style={{
-            width: 'min(94vw, 94dvh, 540px)',
+            width: 'min(calc(100vw - 16px), calc(100dvh - 110px), 520px)',
+            height: 'min(calc(100vw - 16px), calc(100dvh - 110px), 520px)',
             boxShadow: '0 10px 40px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.04)'
           }}
         >
@@ -255,6 +263,7 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               boardRotation={boardRotation}
+              diceProps={diceProps}
             />
           ) : (
             <RadialMultiPlayerBoard
@@ -267,8 +276,11 @@ export default function LudoBoard({
               theme={currentTheme}
               moveTimer={moveTimer}
               myPlayerIndex={myPlayerIndex}
+              diceProps={diceProps}
             />
           )}
+          {/* Floating Sticker Reaction Layer */}
+          <StickerOverlay stickers={stickers} playerCount={playerCount} />
         </div>
       )}
     </div>
@@ -286,7 +298,8 @@ function Classic4PlayerBoard({
   onSelectToken,
   theme,
   moveTimer,
-  boardRotation = 0
+  boardRotation = 0,
+  diceProps = null
 }) {
   const trackCoordMap = [
     [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], // 0-4 (Red start at 0 is [6,1])
@@ -336,9 +349,16 @@ function Classic4PlayerBoard({
       }}
     >
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
-        style={theme.isPachisi ? { borderColor: '#7F1D1D' } : {}}>
-        {/* Pachisi: corner flourish */}
+      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === redPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
+        style={{
+          borderColor: redPlayer?.color?.hex || '#EF4444',
+          '--yard-glow-color': redPlayer?.color?.hex || '#EF4444',
+          boxShadow: gameState.currentTurnIndex === redPlayer?.playerIndex
+            ? `0 0 24px ${redPlayer?.color?.hex || '#EF4444'}, inset 0 0 16px ${redPlayer?.color?.hex || '#EF4444'}55`
+            : undefined
+        }}>
         {theme.isPachisi && (
           <div className="absolute top-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -361,8 +381,16 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
-        style={theme.isPachisi ? { borderColor: '#14532D' } : {}}>
+      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === greenPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
+        style={{
+          borderColor: greenPlayer?.color?.hex || '#10B981',
+          '--yard-glow-color': greenPlayer?.color?.hex || '#10B981',
+          boxShadow: gameState.currentTurnIndex === greenPlayer?.playerIndex
+            ? `0 0 24px ${greenPlayer?.color?.hex || '#10B981'}, inset 0 0 16px ${greenPlayer?.color?.hex || '#10B981'}55`
+            : undefined
+        }}>
         {theme.isPachisi && (
           <div className="absolute top-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -384,34 +412,33 @@ function Classic4PlayerBoard({
         {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
-      {/* 5. CENTER: Finish Victory Triangles (rows 6-8, cols 6-8) */}
+      {/* 5. CENTER: Finish Victory Triangles + Embedded Center Dice (rows 6-8, cols 6-8) */}
       <div
-        className="col-span-3 row-span-3 relative flex items-center justify-center shadow-2xl overflow-hidden"
+        className="col-span-3 row-span-3 relative flex items-center justify-center shadow-2xl overflow-hidden rounded-xl"
         style={theme.isPachisi
           ? { backgroundColor: '#FAF0DC', border: '2px solid #8B4513' }
-          : { backgroundColor: '#0d0d0d', border: '1px solid rgba(251,191,36,0.5)' }}
+          : { backgroundColor: '#090d16', border: '2px solid rgba(251,191,36,0.6)', boxShadow: '0 0 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(251,191,36,0.15)' }}
       >
-        {/* Radial Glow */}
+        {/* Radial Center Glow */}
         <div
           className="absolute inset-0 pointer-events-none z-0"
           style={{
             background: theme.isPachisi
-              ? 'radial-gradient(circle at center, rgba(212,160,23,0.25) 0%, transparent 70%)'
-              : 'radial-gradient(circle at center, rgba(251,191,36,0.28) 0%, transparent 75%)'
+              ? 'radial-gradient(circle at center, rgba(212,160,23,0.3) 0%, transparent 70%)'
+              : 'radial-gradient(circle at center, rgba(251,191,36,0.35) 0%, transparent 75%)'
           }}
         />
         {/* Pinwheel Triangles */}
         <div className="absolute inset-0">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             {/* Red: left */}
-            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity={theme.isPachisi ? '1' : '0.95'} />
+            <polygon points="0,0 50,50 0,100" fill={theme.centerWedges.red} opacity={theme.isPachisi ? '1' : '0.92'} />
             {/* Green: top */}
-            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity={theme.isPachisi ? '1' : '0.95'} />
+            <polygon points="0,0 50,50 100,0" fill={theme.centerWedges.green} opacity={theme.isPachisi ? '1' : '0.92'} />
             {/* Yellow: right */}
-            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity={theme.isPachisi ? '1' : '0.95'} />
+            <polygon points="100,0 50,50 100,100" fill={theme.centerWedges.yellow} opacity={theme.isPachisi ? '1' : '0.92'} />
             {/* Blue: bottom */}
-            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity={theme.isPachisi ? '1' : '0.95'} />
-            {/* Pachisi: white dividing lines for traditional look */}
+            <polygon points="0,100 50,50 100,100" fill={theme.centerWedges.blue} opacity={theme.isPachisi ? '1' : '0.92'} />
             {theme.isPachisi && (
               <>
                 <line x1="0" y1="0" x2="50" y2="50" stroke="#FAF0DC" strokeWidth="1.5" />
@@ -422,39 +449,54 @@ function Classic4PlayerBoard({
             )}
           </svg>
         </div>
-        {/* Center Hub */}
-        {theme.isPachisi ? (
-          <div className="absolute w-7 h-7 rounded-full flex items-center justify-center z-10"
-            style={{ backgroundColor: '#FAF0DC', border: '2.5px solid #8B4513', boxShadow: '0 0 10px rgba(139,69,19,0.6)' }}>
-            <span className="text-[10px]" style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}>✦</span>
+
+        {/* Finished tokens summary badge */}
+        {finishOccupants.length > 0 && (
+          <div className="absolute top-1 right-1 z-10 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-[8px] font-black text-amber-300 border border-amber-400/40 pointer-events-none">
+            🏆 {finishOccupants.length}/4
           </div>
-        ) : (
-          <div className="absolute w-6 h-6 rounded-full bg-black/90 border border-amber-300 flex items-center justify-center shadow-[0_0_12px_rgba(251,191,36,0.8)] z-0" />
         )}
-        {/* Finish Tokens Stack */}
-        <div className="z-10 flex flex-wrap items-center justify-center gap-1 p-1 max-w-[85%] max-h-[85%] overflow-hidden">
-          {finishOccupants.map((t, idx) => (
-            <Token key={`fin_${idx}`} color={t.color} size="sm" isCaptured={t.isCaptured} stackCount={1} counterRotation={boardRotation} />
-          ))}
-          {finishOccupants.length === 0 && (
-            <span
-              className={`text-sm md:text-base font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${
-                theme.isPachisi ? 'text-[#8B4513]' : 'text-amber-300'
-              }`}
-              style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
-            >{theme.isPachisi ? '🪔' : '🏆'}</span>
+
+        {/* 🎲 EMBEDDED CENTER DICE */}
+        <div 
+          className="relative z-20 flex items-center justify-center pointer-events-auto"
+          style={boardRotation ? { transform: `rotate(${-boardRotation}deg)` } : undefined}
+        >
+          {diceProps ? (
+            <Dice
+              value={diceProps.value}
+              isRolling={diceProps.isRolling}
+              disabled={diceProps.disabled}
+              onRoll={diceProps.onRoll}
+              playerColor={diceProps.playerColor}
+              timerSeconds={diceProps.timerSeconds}
+              isUrgent={diceProps.isUrgent}
+              inCenter={true}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-slate-900/90 border border-amber-400/60 flex items-center justify-center shadow-lg">
+              <span className="text-sm">🎲</span>
+            </div>
           )}
         </div>
       </div>
 
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
-      <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
+      <div className="col-span-3 row-span-6 grid grid-cols-3 grid-rows-6" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
-        style={theme.isPachisi ? { borderColor: '#1E3A8A' } : {}}>
+      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === bluePlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
+        style={{
+          borderColor: bluePlayer?.color?.hex || '#3B82F6',
+          '--yard-glow-color': bluePlayer?.color?.hex || '#3B82F6',
+          boxShadow: gameState.currentTurnIndex === bluePlayer?.playerIndex
+            ? `0 0 24px ${bluePlayer?.color?.hex || '#3B82F6'}, inset 0 0 16px ${bluePlayer?.color?.hex || '#3B82F6'}55`
+            : undefined
+        }}>
         {theme.isPachisi && (
           <div className="absolute bottom-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -477,13 +519,21 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300`}
-        style={theme.isPachisi ? { borderColor: '#78350F' } : {}}>
+      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === yellowPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
+        style={{
+          borderColor: yellowPlayer?.color?.hex || '#EAB308',
+          '--yard-glow-color': yellowPlayer?.color?.hex || '#EAB308',
+          boxShadow: gameState.currentTurnIndex === yellowPlayer?.playerIndex
+            ? `0 0 24px ${yellowPlayer?.color?.hex || '#EAB308'}, inset 0 0 16px ${yellowPlayer?.color?.hex || '#EAB308'}55`
+            : undefined
+        }}>
         {theme.isPachisi && (
           <div className="absolute bottom-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
         <HomeYard
-          colorHex={yellowPlayer?.color?.hex || '#F59E0B'}
+          colorHex={yellowPlayer?.color?.hex || '#EAB308'}
           colorName="Yellow"
           player={yellowPlayer}
           tokens={yellowTokens}
@@ -500,7 +550,6 @@ function Classic4PlayerBoard({
 
 /**
  * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
- * For Pachisi theme: ornate ivory inner square with colored border and larger token circles.
  */
 function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, counterRotation = 0 }) {
   if (!player) {
@@ -531,19 +580,28 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
     /* ── Pachisi Heritage HomeYard ─────────────────────────────────── */
     return (
       <div className="w-full h-full flex flex-col items-center justify-between relative p-1">
-        {/* Username badge */}
+        {/* Username badge + Turn Indicator */}
         <div
           className="w-full flex items-center justify-between px-0.5 z-10"
           style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
         >
-          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
-            {player.username}
-          </span>
+          <div className="flex items-center gap-1 max-w-[70%] truncate">
+            {isCurrentTurn && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
+            )}
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white drop-shadow truncate">
+              {player.username}
+            </span>
+          </div>
           {isMoveTimerActive ? (
             <span
               className="text-[8px] md:text-[9px] font-mono font-black px-1 py-0.5 rounded-full text-white animate-pulse"
               style={{ backgroundColor: colorHex }}
             >⏱️ {moveSeconds}s</span>
+          ) : isCurrentTurn ? (
+            <span className="text-[8px] font-black px-1 rounded bg-amber-400 text-slate-950 animate-pulse">
+              TURN
+            </span>
           ) : (
             <span className="w-2 h-2 rounded-full ring-1 ring-white/60" style={{ backgroundColor: colorHex }} />
           )}
@@ -555,7 +613,9 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           style={{
             backgroundColor: '#FAF0DC',
             border: `3px solid ${colorHex}`,
-            boxShadow: `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
+            boxShadow: isCurrentTurn 
+              ? `0 0 16px ${colorHex}, inset 0 0 10px rgba(212,160,23,0.3)`
+              : `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
             borderRadius: '6px'
           }}
         >
@@ -630,20 +690,31 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         <div className="absolute top-1 left-1 text-[12px] opacity-70 select-none">🪷</div>
       )}
 
-      {/* Header with Username & Move Timer Badge */}
+      {/* Header with Username, Active Turn Glow & Move Timer Badge */}
       <div
         className="w-full flex items-center justify-between px-1 z-10"
         style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
       >
-        <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate max-w-[65%]">
-          {player.username}
-        </span>
+        <div className="flex items-center gap-1 max-w-[65%] truncate">
+          {isCurrentTurn && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
+          )}
+          <span className="text-[10px] md:text-xs font-black uppercase tracking-wider text-white drop-shadow truncate">
+            {player.username}
+          </span>
+        </div>
         {isMoveTimerActive ? (
           <span
             className="text-[9px] md:text-[10px] font-mono font-black px-1.5 py-0.5 rounded-full text-white animate-pulse shadow-md flex items-center gap-0.5"
             style={{ backgroundColor: colorHex, boxShadow: `0 0 10px ${colorHex}` }}
           >
             ⏱️ {moveSeconds}s
+          </span>
+        ) : isCurrentTurn ? (
+          <span
+            className="text-[8px] md:text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 animate-pulse shadow-md"
+          >
+            TURN
           </span>
         ) : (
           <span
@@ -658,6 +729,9 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
           isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
         }`}
+        style={isCurrentTurn ? {
+          boxShadow: `0 0 14px ${colorHex}88, inset 0 0 10px ${colorHex}33`
+        } : undefined}
       >
         {/* Rotated Diamond Background */}
         <div
@@ -665,7 +739,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           style={{
             borderColor: colorHex,
             backgroundColor: isDarkMode ? `${colorHex}1a` : `${colorHex}25`,
-            boxShadow: isDarkMode ? `0 0 10px ${colorHex}35` : 'none'
+            boxShadow: isCurrentTurn ? `0 0 14px ${colorHex}77` : (isDarkMode ? `0 0 10px ${colorHex}35` : 'none')
           }}
         />
 
@@ -853,24 +927,39 @@ function RadialMultiPlayerBoard({
   playerCount,
   theme,
   moveTimer,
-  diceNode,
+  diceProps,
   myPlayerIndex = null
 }) {
   const baseOffset = (myPlayerIndex !== null && myPlayerIndex !== undefined && myPlayerIndex >= 0) ? myPlayerIndex : 0;
 
   return (
     <div className="w-full h-full relative flex items-center justify-center p-2">
-      {/* Central Finish Hub */}
-      <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-slate-950 border-4 border-amber-400/90 shadow-2xl flex flex-col items-center justify-center z-20 p-1">
-        <span className="text-amber-400 text-xs font-black uppercase tracking-wider">BUDO</span>
-        <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
-          {finishOccupants.map((t, idx) => (
-            <Token key={`rad_fin_${idx}`} color={t.color} size="sm" isHopping={t.isHopping} />
-          ))}
-          {finishOccupants.length === 0 && (
-            <span className="text-amber-300 text-sm">🏆</span>
-          )}
-        </div>
+      {/* Central Finish & Dice Hub */}
+      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-950 border-4 border-amber-400/90 shadow-2xl flex flex-col items-center justify-center z-20 p-1 relative overflow-hidden">
+        {diceProps ? (
+          <Dice
+            value={diceProps.value}
+            isRolling={diceProps.isRolling}
+            disabled={diceProps.disabled}
+            onRoll={diceProps.onRoll}
+            playerColor={diceProps.playerColor}
+            timerSeconds={diceProps.timerSeconds}
+            isUrgent={diceProps.isUrgent}
+            inCenter={true}
+          />
+        ) : (
+          <>
+            <span className="text-amber-400 text-xs font-black uppercase tracking-wider">BUDO</span>
+            <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
+              {finishOccupants.map((t, idx) => (
+                <Token key={`rad_fin_${idx}`} color={t.color} size="sm" isHopping={t.isHopping} />
+              ))}
+              {finishOccupants.length === 0 && (
+                <span className="text-amber-300 text-sm">🏆</span>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Radial Players Yards & Track Spokes */}
@@ -880,16 +969,26 @@ function RadialMultiPlayerBoard({
         const radius = 37;
         const x = 50 + radius * Math.cos(angle);
         const y = 50 + radius * Math.sin(angle);
+        const isCurrentTurn = gameState.currentTurnIndex === player.playerIndex;
 
         return (
           <div
             key={pIdx}
-            className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
-            style={{ left: `${x}%`, top: `${y}%` }}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-all ${
+              isCurrentTurn ? 'animate-yard-pulse z-30' : ''
+            }`}
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              '--yard-glow-color': player.color.hex
+            }}
           >
             <div 
               className="p-1.5 md:p-2 rounded-2xl bg-slate-950/90 border-2 shadow-xl flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20"
-              style={{ borderColor: player.color.hex }}
+              style={{
+                borderColor: player.color.hex,
+                boxShadow: isCurrentTurn ? `0 0 20px ${player.color.hex}` : undefined
+              }}
             >
               <span className="text-[9px] font-black text-white truncate max-w-[50px]">
                 {player.username}

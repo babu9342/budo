@@ -22,11 +22,15 @@ export default function PlayerCard({
     <div
       className={`relative rounded-2xl transition-all duration-300 select-none overflow-hidden ${
         isCurrentTurn
-          ? `bg-slate-800/95 border-2 shadow-xl ring-2 ${isUrgent ? 'ring-red-500/80 animate-pulse' : 'ring-amber-400/50'} scale-102 z-20`
+          ? `border-2 shadow-xl ring-2 ${isUrgent ? 'ring-red-500/80 animate-pulse' : 'ring-amber-400/50'} scale-102 z-20`
           : 'bg-slate-900/70 border border-slate-800 opacity-90'
       } ${compact ? 'p-1.5 md:p-2' : 'p-2.5'}`}
       style={{
-        borderColor: isCurrentTurn ? (isUrgent ? '#EF4444' : player.color.hex) : 'rgba(51, 65, 85, 0.6)'
+        borderColor: isCurrentTurn ? (isUrgent ? '#EF4444' : player.color.hex) : 'rgba(51, 65, 85, 0.6)',
+        background: isCurrentTurn
+          ? `linear-gradient(135deg, ${player.color.hex}2e, rgba(15, 23, 42, 0.98))`
+          : undefined,
+        boxShadow: isCurrentTurn ? `0 0 16px ${player.color.hex}44` : undefined
       }}
     >
       <div className="flex items-center gap-2">
@@ -98,12 +102,22 @@ export default function PlayerCard({
           )}
         </div>
 
-        {/* Player Name and Progress */}
+        {/* Player Name and Progress with Animated Turn Arrow / Dot */}
         <div className="flex flex-col min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-white truncate max-w-[70px] md:max-w-[90px]">
-              {player.username}
-            </span>
+            <div className="flex items-center gap-1 min-w-0">
+              {isCurrentTurn && (
+                <span
+                  className="text-amber-400 font-black animate-turn-arrow text-[11px] leading-none select-none flex-shrink-0"
+                  title="Current Turn"
+                >
+                  ▶
+                </span>
+              )}
+              <span className="text-xs font-black text-white truncate max-w-[65px] md:max-w-[85px]">
+                {player.username}
+              </span>
+            </div>
             {isWinner ? (
               <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
             ) : isMoveTimerActive ? (

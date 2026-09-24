@@ -32,13 +32,13 @@ export default function Login() {
       if (res.data.success) {
         dispatch(setAuth({ user: res.data.user, token: res.data.token }));
 
-        // Check if redirected from a room share link
+        // Check if redirected from a room share link or protected route
         const redirectUrl = sessionStorage.getItem('budo_redirect_after_login');
         if (redirectUrl) {
           sessionStorage.removeItem('budo_redirect_after_login');
           navigate(redirectUrl);
         } else {
-          navigate('/');
+          navigate('/game');
         }
       }
     } catch (err) {
@@ -71,7 +71,7 @@ export default function Login() {
           sessionStorage.removeItem('budo_redirect_after_login');
           navigate(redirectUrl);
         } else {
-          navigate('/');
+          navigate('/game');
         }
       }
     } catch (e) {
@@ -80,7 +80,7 @@ export default function Login() {
         const res2 = await api.post('/auth/login', { email: 'babu@budo.com', password: 'password123' });
         if (res2.data.success) {
           dispatch(setAuth({ user: res2.data.user, token: res2.data.token }));
-          navigate('/');
+          navigate('/game');
         }
       } catch (e2) {
         setError('Demo login failed');

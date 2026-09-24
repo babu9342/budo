@@ -244,6 +244,104 @@ html, body {
   animation: diceCornerAppear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Active Turn Home Yard Glowing Border Pulse (~1s Loop) */
+@keyframes yardPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px var(--yard-glow-color, #F59E0B));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 24px var(--yard-glow-color, #F59E0B)) drop-shadow(0 0 8px #FFFFFF);
+    transform: scale(1.02);
+  }
+}
+
+.animate-yard-pulse {
+  animation: yardPulse 1.05s infinite ease-in-out;
+  z-index: 25 !important;
+}
+
+/* Animated Arrow indicator for active player panel */
+@keyframes turnArrowBounce {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-turn-arrow {
+  animation: turnArrowBounce 0.8s infinite ease-in-out;
+}
+
+/* Sticker Picker Click Tap Animation */
+@keyframes stickerTap {
+  0% { transform: scale(1) rotate(0deg); }
+  40% { transform: scale(1.38) rotate(-12deg); filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.9)); }
+  75% { transform: scale(1.15) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-sticker-tap {
+  animation: stickerTap 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Floating Board Sticker Pop-In Entry */
+@keyframes stickerFloatIn {
+  0% {
+    transform: scale(0.1) translateY(30px) rotate(-15deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18) translateY(-8px) rotate(6deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.94) translateY(3px) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-sticker-in {
+  animation: stickerFloatIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Floating Board Sticker Fade-Out Exit */
+@keyframes stickerFloatOut {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.3) translateY(-25px);
+    opacity: 0;
+  }
+}
+
+.animate-sticker-out {
+  animation: stickerFloatOut 0.45s ease-in forwards;
+}
+
+/* Floating Sticker Gentle Continuous Bobbing */
+@keyframes stickerBob {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+.animate-sticker-bob {
+  animation: stickerBob 1.6s ease-in-out infinite;
+}
+
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+

@@ -8,12 +8,13 @@ import LudoBoard from '../components/LudoBoard';
 import Dice from '../components/Dice';
 import PlayerCard from '../components/PlayerCard';
 import ChatDrawer from '../components/ChatDrawer';
+import StickerPickerModal from '../components/StickerPickerModal';
 import { BOARD_THEMES } from '../game/boardThemes';
 import { getBestAutoMove } from '../game/bot';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, MessageSquare, Palette, Clock, Check, Volume2, VolumeX, RotateCcw } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Palette, Clock, Check, Volume2, VolumeX, RotateCcw, Smile } from 'lucide-react';
 
 export default function GamePlay() {
   const { code } = useParams();
@@ -30,6 +31,8 @@ export default function GamePlay() {
   const [messages, setMessages] = useState([]);
   const [themeName, setThemeName] = useState(localStorage.getItem('budo_board_theme') || 'classic');
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
 
   // Move Timer Feature (6-second countdown for move selection)
@@ -108,10 +111,42 @@ export default function GamePlay() {
       setMessages((prev) => [...prev, msg]);
       if (!chatOpen) setUnreadChat((prev) => prev + 1);
     });
+
     socket.on('chat:sticker', (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (!chatOpen) setUnreadChat((prev) => prev + 1);
+
+      // Resolve player info for floating board overlay
+      const sender = gameState?.players?.find(p => p.userId === msg.userId || p.username === msg.username);
+      const stickerId = `${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
+      const newSticker = {
+        id: stickerId,
+        content: msg.content,
+        username: msg.username || sender?.username || 'Player',
+        avatarUrl: sender?.avatarUrl || '/avatars/default.png',
+        color: sender?.color?.hex || '#F59E0B',
+        playerIndex: sender?.playerIndex !== undefined ? sender.playerIndex : -1,
+        timestamp: Date.now(),
+        isLeaving: false
+      };
+
+      setFloatingStickers((prev) => [...prev, newSticker]);
+      sound.playClick();
+      triggerHaptic('light');
+
+      // Schedule exit fade at 2.4s and removal at 2.85s
+      setTimeout(() => {
+        setFloatingStickers((prev) =>
+          prev.map((s) => (s.id === stickerId ? { ...s, isLeaving: true } : s))
+        );
+      }, 2400);
+
+      setTimeout(() => {
+        setFloatingStickers((prev) => prev.filter((s) => s.id !== stickerId));
+      }, 2850);
     });
+
     socket.on('chat:audio', (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (!chatOpen) setUnreadChat((prev) => prev + 1);
@@ -304,11 +339,11 @@ export default function GamePlay() {
   };
 
   return (
-    <div className="h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden justify-between">
       {/* Game Header Bar */}
-      <header className="w-full max-w-md md:max-w-2xl px-3 py-2 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+      <header className="w-full max-w-md md:max-w-2xl px-3 py-1.5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
         <button
-          onClick={() => { sound.playClick(); navigate('/'); }}
+          onClick={() => { sound.playClick(); navigate('/game'); }}
           className="p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -318,12 +353,22 @@ export default function GamePlay() {
           <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-slate-400">
             <span>Room #{code}</span>
           </div>
-          <div className="text-xs font-black text-amber-400 flex items-center gap-1">
+          <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+            {isMyTurn && <span className="animate-ping w-2 h-2 rounded-full bg-amber-400 inline-block" />}
             <span>{isMyTurn ? '🔥 YOUR TURN!' : `${currentPlayer?.username}'s Turn`}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Animated Sticker Reactions Button */}
+          <button
+            onClick={() => { sound.playClick(); setShowStickerPicker(true); }}
+            className="p-1.5 rounded-xl bg-slate-900 text-amber-400 hover:text-amber-300 border border-slate-800 active:scale-90 transition-transform flex items-center justify-center shadow-sm"
+            title="Send Animated Sticker Reaction"
+          >
+            <Smile className="w-4 h-4" />
+          </button>
+
           {/* Theme Chooser Button */}
           <button
             onClick={() => { sound.playClick(); setShowThemeModal(true); }}
@@ -358,10 +403,24 @@ export default function GamePlay() {
         </div>
       </header>
 
-      {/* Main Game Arena */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-between p-2 gap-1.5 min-h-0 overflow-hidden">
-        {/* Dynamic Ludo Board with Theme & Step-by-Step Animation */}
-        <div className="w-full flex items-center justify-center flex-1 min-h-0">
+      {/* Compact Players Strip */}
+      <div className="w-full max-w-md md:max-w-2xl px-2 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-shrink-0">
+        {gameState.players.map((p, idx) => (
+          <PlayerCard
+            key={idx}
+            player={p}
+            isCurrentTurn={gameState.currentTurnIndex === idx}
+            compact={true}
+            remainingSeconds={remainingSeconds}
+            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive && gameState.currentTurnIndex === idx }}
+          />
+        ))}
+      </div>
+
+      {/* Main Game Arena with Embedded Center Dice & Floating Stickers */}
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden">
+        {/* Dynamic Ludo Board with Center Dice & Step-by-Step Animation */}
+        <div className="w-full h-full flex items-center justify-center min-h-0">
           <LudoBoard
             gameState={gameState}
             onSelectToken={handleSelectToken}
@@ -369,79 +428,57 @@ export default function GamePlay() {
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
             myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
+            stickers={floatingStickers}
+            diceProps={{
+              value: gameState.diceValue,
+              isRolling: diceRolling,
+              disabled: !isMyTurn || !isWaitingRoll,
+              onRoll: handleRollDice,
+              playerColor: currentPlayer?.color?.hex,
+              timerSeconds: isMyTurn && isWaitingRoll ? rollTimerSeconds : null,
+              isUrgent: isRollUrgent
+            }}
           />
         </div>
+      </main>
 
-        {/* User Perspective Control Bar (Left: Dice, Right: Turn Status & Guide) */}
-        <div className="w-full max-w-md px-3 py-2 flex items-center justify-between gap-3 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-800 shadow-2xl flex-shrink-0">
-          {/* Left: Perspective Dice */}
-          <div className="flex-shrink-0 flex items-center justify-center">
-            <Dice
-              value={gameState.diceValue}
-              isRolling={diceRolling}
-              disabled={!isMyTurn || !isWaitingRoll}
-              onRoll={handleRollDice}
-              playerColor={currentPlayer?.color?.hex}
-              timerSeconds={isMyTurn && isWaitingRoll ? rollTimerSeconds : null}
-              isUrgent={isRollUrgent}
-            />
-          </div>
-
-          {/* Right: Turn Status & Move Action Guide */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5 truncate">
-                <span
-                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
-                  style={{ backgroundColor: currentPlayer?.color?.hex }}
-                />
-                <span className="text-xs font-black text-white truncate">
-                  {isMyTurn ? 'Your Turn' : `${currentPlayer?.username}'s Turn`}
-                </span>
-              </div>
-              {isWaitingRoll && isMyTurn && (
-                <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/40 animate-pulse">
-                  ⏱️ {rollTimerSeconds}s
-                </span>
-              )}
-              {isWaitingMove && isMyTurn && (
-                <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full border border-emerald-400/40 animate-pulse">
-                  ⏱️ {moveTimerSeconds}s
-                </span>
-              )}
-            </div>
-
-            <div className="text-[11px] font-bold truncate">
-              {isMyTurn ? (
-                isWaitingRoll ? (
-                  <span className="text-amber-400 flex items-center gap-1 animate-pulse">
-                    👈 Tap Dice to Roll!
-                  </span>
-                ) : isWaitingMove ? (
-                  <span className="text-emerald-400">
-                    🎯 Tap highlighted coin to move!
-                  </span>
-                ) : (
-                  <span className="text-slate-400">Processing move...</span>
-                )
+      {/* Ultra-Compact Turn Status Ribbon */}
+      <div className="w-full max-w-md md:max-w-2xl px-3 py-1.5 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 flex items-center justify-between gap-2 flex-shrink-0 text-xs">
+        <div className="flex items-center gap-2 truncate">
+          <span
+            className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+            style={{ backgroundColor: currentPlayer?.color?.hex }}
+          />
+          <span className="font-bold text-white truncate">
+            {isMyTurn ? (
+              isWaitingRoll ? (
+                <span className="text-amber-400 animate-pulse">🎲 Tap center dice to roll!</span>
+              ) : isWaitingMove ? (
+                <span className="text-emerald-400">🎯 Tap highlighted coin to move!</span>
               ) : (
-                <span className="text-slate-400">
-                  Waiting for {currentPlayer?.username}...
-                </span>
-              )}
-            </div>
+                <span className="text-slate-400">Processing move...</span>
+              )
+            ) : (
+              <span className="text-slate-400">Waiting for {currentPlayer?.username}...</span>
+            )}
+          </span>
+        </div>
 
-            {moveTimerActive && isMyTurn && (
-              <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden border border-white/5">
-                <div
-                  className="h-full bg-emerald-400 rounded-full transition-all duration-200"
-                  style={{ width: `${(moveTimerSeconds / 6) * 100}%` }}
-                />
-              </div>
+        {isMyTurn && (
+          <div className="flex items-center gap-1">
+            {isWaitingRoll && (
+              <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/40 animate-pulse">
+                ⏱️ {rollTimerSeconds}s
+              </span>
+            )}
+            {isWaitingMove && (
+              <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full border border-emerald-400/40 animate-pulse">
+                ⏱️ {moveTimerSeconds}s
+              </span>
             )}
           </div>
-        </div>
-      </main>
+        )}
+      </div>
 
       {/* Board Theme Chooser Modal */}
       {showThemeModal && (
@@ -499,6 +536,13 @@ export default function GamePlay() {
         onSendMessage={handleSendChatMessage}
         onSendSticker={handleSendChatSticker}
         onSendAudio={handleSendChatAudio}
+      />
+
+      {/* Animated Sticker Reaction Picker Modal */}
+      <StickerPickerModal
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelectSticker={handleSendChatSticker}
       />
     </div>
   );

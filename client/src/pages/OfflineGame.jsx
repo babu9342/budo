@@ -5,11 +5,12 @@ import { getBotMove, getBestAutoMove } from '../game/bot';
 import LudoBoard from '../components/LudoBoard';
 import Dice from '../components/Dice';
 import PlayerCard from '../components/PlayerCard';
+import StickerPickerModal from '../components/StickerPickerModal';
 import { BOARD_THEMES } from '../game/boardThemes';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, RotateCcw, Bot, Users, Palette, Clock, Check } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Bot, Users, Palette, Clock, Check, Smile } from 'lucide-react';
 
 export default function OfflineGame() {
   const navigate = useNavigate();
@@ -22,7 +23,41 @@ export default function OfflineGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [themeName, setThemeName] = useState(localStorage.getItem('budo_board_theme') || 'classic');
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
+
+  // Trigger floating reaction on the board
+  const triggerSticker = (content, playerIndex = 0) => {
+    if (!gameState) return;
+    const player = gameState.players[playerIndex] || gameState.players[0];
+    const stickerId = `${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
+    const newSticker = {
+      id: stickerId,
+      content,
+      username: player?.username || 'Player',
+      avatarUrl: player?.avatarUrl || '/avatars/default.png',
+      color: player?.color?.hex || '#F59E0B',
+      playerIndex: player?.playerIndex !== undefined ? player.playerIndex : playerIndex,
+      timestamp: Date.now(),
+      isLeaving: false
+    };
+
+    setFloatingStickers((prev) => [...prev, newSticker]);
+    sound.playClick();
+    triggerHaptic('light');
+
+    setTimeout(() => {
+      setFloatingStickers((prev) =>
+        prev.map((s) => (s.id === stickerId ? { ...s, isLeaving: true } : s))
+      );
+    }, 2400);
+
+    setTimeout(() => {
+      setFloatingStickers((prev) => prev.filter((s) => s.id !== stickerId));
+    }, 2850);
+  };
 
   // Move Timer Feature (6-second countdown for move selection)
   const [moveTimerSeconds, setMoveTimerSeconds] = useState(6);
@@ -391,9 +426,9 @@ export default function OfflineGame() {
   const isRollUrgent = rollTimerSeconds <= 3;
 
   return (
-    <div className="h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden justify-between">
       {/* Header */}
-      <header className="w-full max-w-md md:max-w-2xl px-3 py-2 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+      <header className="w-full max-w-md md:max-w-2xl px-3 py-1.5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
         <button
           onClick={() => { sound.playClick(); setGameStarted(false); }}
           className="p-1.5 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white"
@@ -405,12 +440,22 @@ export default function OfflineGame() {
           <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-purple-400">
             <span>Offline Match ({difficulty.toUpperCase()})</span>
           </div>
-          <div className="text-xs font-black text-amber-400">
-            {currentPlayer?.username}'s Turn
+          <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+            {isHumanTurn && <span className="animate-ping w-2 h-2 rounded-full bg-amber-400 inline-block" />}
+            <span>{currentPlayer?.username}'s Turn</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Animated Sticker Reactions Button */}
+          <button
+            onClick={() => { sound.playClick(); setShowStickerPicker(true); }}
+            className="p-1.5 rounded-xl bg-slate-900 text-amber-400 hover:text-amber-300 border border-slate-800 active:scale-90 transition-transform flex items-center justify-center shadow-sm"
+            title="Send Animated Sticker Reaction"
+          >
+            <Smile className="w-4 h-4" />
+          </button>
+
           {/* Theme Switcher Button */}
           <button
             onClick={() => { sound.playClick(); setShowThemeModal(true); }}
@@ -430,10 +475,24 @@ export default function OfflineGame() {
         </div>
       </header>
 
-      {/* Main Board Arena */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-between p-2 gap-1.5 min-h-0 overflow-hidden">
-        {/* Dynamic Ludo Board with Theme & Step-by-Step Hop Animation */}
-        <div className="w-full flex items-center justify-center flex-1 min-h-0">
+      {/* Compact Players Strip */}
+      <div className="w-full max-w-md md:max-w-2xl px-2 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-shrink-0">
+        {gameState.players.map((p, idx) => (
+          <PlayerCard
+            key={idx}
+            player={p}
+            isCurrentTurn={gameState.currentTurnIndex === idx}
+            compact={true}
+            remainingSeconds={remainingSeconds}
+            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive && gameState.currentTurnIndex === idx }}
+          />
+        ))}
+      </div>
+
+      {/* Main Board Arena with Embedded Center Dice & Floating Stickers */}
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden">
+        {/* Dynamic Ludo Board with Center Dice & Step-by-Step Hop Animation */}
+        <div className="w-full h-full flex items-center justify-center min-h-0">
           <LudoBoard
             gameState={gameState}
             onSelectToken={handleSelectToken}
@@ -441,79 +500,57 @@ export default function OfflineGame() {
             themeName={themeName}
             moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
             myPlayerIndex={gameMode === 'local_pass' ? gameState.currentTurnIndex : 0}
+            stickers={floatingStickers}
+            diceProps={{
+              value: gameState.diceValue,
+              isRolling: diceRolling,
+              disabled: !isHumanTurn || !isWaitingRoll,
+              onRoll: handleRollDice,
+              playerColor: currentPlayer?.color?.hex,
+              timerSeconds: isHumanTurn && isWaitingRoll ? rollTimerSeconds : null,
+              isUrgent: isRollUrgent
+            }}
           />
         </div>
+      </main>
 
-        {/* User Perspective Control Bar (Left: Dice, Right: Turn Status & Guide) */}
-        <div className="w-full max-w-md px-3 py-2 flex items-center justify-between gap-3 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-800 shadow-2xl flex-shrink-0">
-          {/* Left: Perspective Dice */}
-          <div className="flex-shrink-0 flex items-center justify-center">
-            <Dice
-              value={gameState.diceValue}
-              isRolling={diceRolling}
-              disabled={!isHumanTurn || !isWaitingRoll}
-              onRoll={handleRollDice}
-              playerColor={currentPlayer?.color.hex}
-              timerSeconds={isHumanTurn && isWaitingRoll ? rollTimerSeconds : null}
-              isUrgent={isRollUrgent}
-            />
-          </div>
-
-          {/* Right: Turn Status & Move Action Guide */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5 truncate">
-                <span
-                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
-                  style={{ backgroundColor: currentPlayer?.color?.hex }}
-                />
-                <span className="text-xs font-black text-white truncate">
-                  {currentPlayer?.username}'s Turn
-                </span>
-              </div>
-              {isWaitingRoll && isHumanTurn && (
-                <span className="text-[10px] font-mono font-black text-purple-400 bg-purple-400/15 px-2 py-0.5 rounded-full border border-purple-400/40 animate-pulse">
-                  ⏱️ {rollTimerSeconds}s
-                </span>
-              )}
-              {gameState.phase === 'WAITING_MOVE' && isHumanTurn && (
-                <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full border border-emerald-400/40 animate-pulse">
-                  ⏱️ {moveTimerSeconds}s
-                </span>
-              )}
-            </div>
-
-            <div className="text-[11px] font-bold truncate">
-              {isHumanTurn ? (
-                isWaitingRoll ? (
-                  <span className="text-purple-400 flex items-center gap-1 animate-pulse">
-                    👈 Tap Dice to Roll!
-                  </span>
-                ) : gameState.phase === 'WAITING_MOVE' ? (
-                  <span className="text-emerald-400">
-                    🎯 Tap highlighted coin to move!
-                  </span>
-                ) : (
-                  <span className="text-slate-400">Processing move...</span>
-                )
+      {/* Ultra-Compact Turn Status Ribbon */}
+      <div className="w-full max-w-md md:max-w-2xl px-3 py-1.5 bg-slate-950/90 backdrop-blur-md border-t border-slate-800 flex items-center justify-between gap-2 flex-shrink-0 text-xs">
+        <div className="flex items-center gap-2 truncate">
+          <span
+            className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+            style={{ backgroundColor: currentPlayer?.color?.hex }}
+          />
+          <span className="font-bold text-white truncate">
+            {isHumanTurn ? (
+              isWaitingRoll ? (
+                <span className="text-amber-400 animate-pulse">🎲 Tap center dice to roll!</span>
+              ) : gameState.phase === 'WAITING_MOVE' ? (
+                <span className="text-emerald-400">🎯 Tap highlighted coin to move!</span>
               ) : (
-                <span className="text-slate-400">
-                  {currentPlayer?.username} is thinking...
-                </span>
-              )}
-            </div>
+                <span className="text-slate-400">Processing move...</span>
+              )
+            ) : (
+              <span className="text-purple-300 animate-pulse">🤖 {currentPlayer?.username} is calculating move...</span>
+            )}
+          </span>
+        </div>
 
-            {moveTimerActive && isHumanTurn && (
-              <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden border border-white/5">
-                <div
-                  className="h-full bg-emerald-400 rounded-full transition-all duration-200"
-                  style={{ width: `${(moveTimerSeconds / 6) * 100}%` }}
-                />
-              </div>
+        {isHumanTurn && (
+          <div className="flex items-center gap-1">
+            {isWaitingRoll && (
+              <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full border border-amber-400/40 animate-pulse">
+                ⏱️ {rollTimerSeconds}s
+              </span>
+            )}
+            {gameState.phase === 'WAITING_MOVE' && (
+              <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full border border-emerald-400/40 animate-pulse">
+                ⏱️ {moveTimerSeconds}s
+              </span>
             )}
           </div>
-        </div>
-      </main>
+        )}
+      </div>
 
       {/* Board Theme Chooser Modal */}
       {showThemeModal && (
@@ -562,6 +599,13 @@ export default function OfflineGame() {
           </div>
         </div>
       )}
+
+      {/* Animated Sticker Reaction Picker Modal */}
+      <StickerPickerModal
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelectSticker={(stk) => triggerSticker(stk, 0)}
+      />
     </div>
   );
 }
