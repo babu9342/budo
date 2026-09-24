@@ -14,7 +14,7 @@ export default function Dice({
 }) {
   const [internalRoll, setInternalRoll] = useState(false);
   const [isLandingPop, setIsLandingPop] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value || 6);
+  const [displayValue, setDisplayValue] = useState(value || 1);
   const [hasEntered, setHasEntered] = useState(false);
   const [isSixJump, setIsSixJump] = useState(false);
   const [showCoinEntry, setShowCoinEntry] = useState(false);
@@ -162,34 +162,11 @@ export default function Dice({
     }
   };
 
-  const isSix = displayValue === 6;
+  const isSix = value === 6 && !internalRoll && !isRolling;
   const showTimer = timerSeconds !== null && !disabled && !internalRoll && !isRolling;
 
   return (
     <div className="flex flex-col items-center justify-center select-none relative z-30 pointer-events-auto">
-      {/* ✨ New Coin Entry Banner — appears when 6 is rolled */}
-      {showCoinEntry && !internalRoll && !isRolling && (
-        <div className={`absolute ${inCenter ? '-top-10 sm:-top-12' : '-top-14'} left-1/2 -translate-x-1/2 z-40 animate-coin-entry flex flex-col items-center gap-0.5 pointer-events-none`}>
-          <div
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-slate-950 whitespace-nowrap animate-coin-glow shadow-xl"
-            style={{ background: 'linear-gradient(135deg, #FDE047, #F59E0B, #FBBF24)' }}
-          >
-            <span className="text-xs sm:text-sm leading-none">🪙</span>
-            <span>Coin Enters!</span>
-          </div>
-          <svg className="w-2.5 h-1.5" viewBox="0 0 12 8" fill="#FBBF24">
-            <path d="M6 8L0 0h12z" />
-          </svg>
-        </div>
-      )}
-
-      {/* Bonus Roll 6 Badge */}
-      {isSix && !disabled && !internalRoll && !showCoinEntry && (
-        <span className={`absolute ${inCenter ? '-top-6 sm:-top-7' : '-top-5'} px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-red-500 text-white font-black text-[8px] sm:text-[9px] uppercase tracking-wider shadow-[0_0_14px_rgba(245,158,11,0.9)] animate-bounce z-40 whitespace-nowrap`}>
-          🔥 Bonus Roll!
-        </span>
-      )}
-
       <button
         onClick={handleDiceClick}
         disabled={disabled || isRolling || internalRoll}
@@ -230,8 +207,17 @@ export default function Dice({
           </span>
         )}
 
+        {/* 6 Rolled: Compact badge embedded directly on dice bottom inside container */}
+        {isSix && showCoinEntry && (
+          <div className="absolute inset-x-1 bottom-1 z-30 pointer-events-none flex items-center justify-center">
+            <span className="bg-amber-400 text-slate-950 font-black text-[7px] sm:text-[8px] uppercase px-1 rounded-full shadow-md animate-bounce whitespace-nowrap">
+              🪙 6 Bonus!
+            </span>
+          </div>
+        )}
+
         {/* Countdown timer badge on dice — visible when waiting to roll */}
-        {showTimer && (
+        {showTimer && !showCoinEntry && (
           <div className="absolute inset-0 flex items-end justify-center pb-0.5 sm:pb-1 pointer-events-none">
             <span className={`text-[8px] sm:text-[9px] font-black font-mono px-1.5 py-0.2 rounded-full ${
               isUrgent ? 'bg-red-500 text-white animate-pulse' : 'bg-black/80 text-amber-300 border border-amber-400/30'
