@@ -338,30 +338,49 @@ function Classic4PlayerBoard({
   const yellowTokens = yellowPlayer ? (homeBases[yellowPlayer.playerIndex] || []) : [];
   const blueTokens = bluePlayer ? (homeBases[bluePlayer.playerIndex] || []) : [];
 
-  const gapBg = theme.isPachisi ? '#A0522D' : theme.isDarkMode ? '#2a2a2a' : '#94a3b8';
+  // Robust Turn Color Resolution (supports string, object { key }, { name }, or playerIndex)
+  const currentTurnPlayer = (gameState.players && gameState.currentTurnIndex !== undefined && gameState.players[gameState.currentTurnIndex])
+    ? gameState.players[gameState.currentTurnIndex]
+    : gameState.players?.[0];
 
-  // Dynamic Dice Position mapped next to the current turn's home square:
-  // Green's turn -> dice appears to the left of the green home square (col 6-8 top runway)
-  // Yellow's turn -> dice appears to the right of the yellow home square (col 9-14 bottom right)
-  // Blue's turn -> dice appears to the right of the blue home square (col 6-8 bottom runway)
-  // Red's turn -> dice appears to the left of the red home square (col 0-5 top left)
-  const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
-  const turnColor = currentTurnPlayer?.color?.key || 'red';
+  let turnColor = 'red';
+  if (currentTurnPlayer) {
+    if (typeof currentTurnPlayer.color === 'string') {
+      turnColor = currentTurnPlayer.color.toLowerCase();
+    } else if (currentTurnPlayer.color?.key) {
+      turnColor = currentTurnPlayer.color.key.toLowerCase();
+    } else if (currentTurnPlayer.color?.name) {
+      turnColor = currentTurnPlayer.color.name.toLowerCase();
+    } else {
+      const idx = currentTurnPlayer.playerIndex ?? gameState.currentTurnIndex ?? 0;
+      if (idx === 0) turnColor = 'red';
+      else if (idx === 1) turnColor = (gameState.players?.length === 2 ? 'yellow' : 'green');
+      else if (idx === 2) turnColor = 'yellow';
+      else if (idx === 3) turnColor = 'blue';
+    }
+  }
 
-  let dicePos = { top: '50%', left: '50%' };
+  // Safe non-overlapping coordinates constrained safely inside each home quadrant:
+  // - >= 20% inset from board edges: prevents any overflow / clipping of top badges & text
+  // - Safely away from runway path cells & star cells (Cols 6-8 and Rows 6-8)
+  // - Green's turn -> Green home square (top-right quadrant)
+  // - Yellow's turn -> Yellow home square (bottom-right quadrant)
+  // - Blue's turn -> Blue home square (bottom-left quadrant)
+  // - Red's turn -> Red home square (top-left quadrant)
+  let dicePos = { top: '22%', left: '20%' };
   if (turnColor === 'red') {
-    dicePos = { top: '20%', left: '7%' }; // Left of Red home square
+    dicePos = { top: '22%', left: '20%' };
   } else if (turnColor === 'green') {
-    dicePos = { top: '20%', left: '50%' }; // Left of Green home square
-  } else if (turnColor === 'yellow') {
-    dicePos = { top: '80%', left: '93%' }; // Right of Yellow home square
-  } else if (turnColor === 'blue') {
-    dicePos = { top: '80%', left: '50%' }; // Right of Blue home square
+    dicePos = { top: '22%', left: '78%' };
+  } else if (turnColor === 'yellow' || turnColor === 'orange') {
+    dicePos = { top: '78%', left: '78%' };
+  } else if (turnColor === 'blue' || turnColor === 'cyan') {
+    dicePos = { top: '78%', left: '20%' };
   }
 
   return (
     <div
-      className={`w-full h-full relative grid grid-cols-15 grid-rows-15 rounded-2xl overflow-hidden p-0.5 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
+      className={`w-full h-full relative grid grid-cols-15 grid-rows-15 rounded-2xl p-1 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
       style={{
         gap: '1px',
         backgroundColor: gapBg,
