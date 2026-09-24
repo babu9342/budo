@@ -5,8 +5,19 @@ import { triggerHaptic } from '../utils/haptics';
 
 export const STICKER_PACKS = [
   {
+    id: '3d_stickers',
+    name: '3D Animated',
+    stickers: [
+      { id: 'flex_beard', image: '/stickers/flex_beard.png', label: 'Flex Power 💪', anim: 'animate-sticker-flex' },
+      { id: 'king_crown', image: '/stickers/king_crown.png', label: 'King Crown 👑', anim: 'animate-sticker-crown' },
+      { id: 'hurry_watch', image: '/stickers/hurry_watch.png', label: 'Hurry Up! ⏱️', anim: 'animate-sticker-hurry' },
+      { id: 'rofl_shoes', image: '/stickers/rofl_shoes.png', label: 'ROFL Laugh 😂', anim: 'animate-sticker-rofl' },
+      { id: 'tea_sip', image: '/stickers/tea_sip.png', label: 'Tea Time ☕', anim: 'animate-sticker-tea' }
+    ]
+  },
+  {
     id: 'reactions',
-    name: 'Animated Reactions',
+    name: 'Emojis',
     stickers: [
       { emoji: '😂', label: 'Laugh' },
       { emoji: '🤣', label: 'ROFL' },
@@ -24,7 +35,7 @@ export const STICKER_PACKS = [
   },
   {
     id: 'ludo',
-    name: 'Ludo Energy',
+    name: 'Ludo Pack',
     stickers: [
       { emoji: '👑', label: 'King' },
       { emoji: '🎯', label: 'Target' },
@@ -42,7 +53,7 @@ export const STICKER_PACKS = [
   },
   {
     id: 'phrases',
-    name: 'Quick Battle Phrases',
+    name: 'Battle Phrases',
     stickers: [
       { text: 'GG! 👑', isChip: true },
       { text: 'Nice Move! 🎯', isChip: true },
@@ -57,7 +68,7 @@ export const STICKER_PACKS = [
 ];
 
 export default function StickerPickerModal({ isOpen, onClose, onSelectSticker }) {
-  const [activeTab, setActiveTab] = useState('reactions');
+  const [activeTab, setActiveTab] = useState('3d_stickers');
   const [tappingIndex, setTappingIndex] = useState(null);
 
   if (!isOpen) return null;
@@ -82,7 +93,7 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[500px] animate-slide-up"
+        className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[520px] animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -90,7 +101,7 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
           <div className="flex items-center gap-2">
             <span className="text-xl">✨</span>
             <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-              Sticker Reactions
+              3D Animated Stickers & Reactions
             </h3>
           </div>
           <button
@@ -102,50 +113,87 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
         </div>
 
         {/* Tab Navigation */}
-        <div className="grid grid-cols-3 gap-1 p-2 bg-slate-950 border-b border-slate-800 text-[11px] font-black">
+        <div className="grid grid-cols-4 gap-1 p-2 bg-slate-950 border-b border-slate-800 text-[10px] sm:text-[11px] font-black">
+          <button
+            type="button"
+            onClick={() => { sound.playClick(); setActiveTab('3d_stickers'); }}
+            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === '3d_stickers'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>3D GIF</span>
+          </button>
+
           <button
             type="button"
             onClick={() => { sound.playClick(); setActiveTab('reactions'); }}
-            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
               activeTab === 'reactions'
                 ? 'bg-amber-500 text-slate-950 shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Smile className="w-3.5 h-3.5" />
+            <Smile className="w-3 h-3" />
             <span>Emojis</span>
           </button>
 
           <button
             type="button"
             onClick={() => { sound.playClick(); setActiveTab('ludo'); }}
-            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
               activeTab === 'ludo'
                 ? 'bg-purple-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <span>🎲</span>
             <span>Ludo</span>
           </button>
 
           <button
             type="button"
             onClick={() => { sound.playClick(); setActiveTab('phrases'); }}
-            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
               activeTab === 'phrases'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span>Phrases</span>
+            <MessageCircle className="w-3 h-3" />
+            <span>Chat</span>
           </button>
         </div>
 
         {/* Sticker Grid Panel */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 no-scrollbar">
-          {activeTab === 'phrases' ? (
+          {activeTab === '3d_stickers' ? (
+            <div className="grid grid-cols-3 gap-3 place-items-center">
+              {currentPack.stickers.map((item, idx) => {
+                const isTapping = tappingIndex === idx;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleStickerTap(item.image, idx)}
+                    className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-900/90 hover:from-slate-700 hover:to-slate-800 border border-slate-700/80 p-2 flex flex-col items-center justify-center shadow-xl transition-all cursor-pointer relative group ${
+                      isTapping ? 'animate-sticker-tap ring-4 ring-amber-400 bg-slate-700' : 'hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.label}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] ${item.anim}`}
+                    />
+                    <span className="text-[9px] sm:text-[10px] font-black text-amber-300 mt-1 truncate max-w-[95%]">
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : activeTab === 'phrases' ? (
             <div className="grid grid-cols-2 gap-2">
               {currentPack.stickers.map((item, idx) => {
                 const isTapping = tappingIndex === idx;

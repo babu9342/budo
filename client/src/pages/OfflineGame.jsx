@@ -511,27 +511,37 @@ export default function OfflineGame() {
       <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden relative">
         <div className="relative w-full h-full flex items-center justify-center min-h-0">
           
-          {/* Constant Left Dock: Quick Emoji Reactions & Sticker Launcher */}
-          <div className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl border border-slate-800/90 shadow-2xl pointer-events-auto">
+          {/* Constant Left Dock: Quick 3D Animated Stickers & Launcher */}
+          <div className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl border border-slate-800/90 shadow-2xl pointer-events-auto">
             <button
               onClick={() => { sound.playClick(); setShowStickerPicker(true); }}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-amber-500/20 active:scale-90 transition-transform"
-              title="All Stickers & Emojis"
+              title="All 3D Animated Stickers & Emojis"
             >
               <Smile className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
             </button>
             <div className="w-full h-px bg-slate-800/80 my-0.5" />
-            {['😂', '🔥', '😎', '😡'].map((emo) => (
+            {[
+              { img: '/stickers/flex_beard.png', name: 'Flex Power 💪' },
+              { img: '/stickers/king_crown.png', name: 'King Crown 👑' },
+              { img: '/stickers/hurry_watch.png', name: 'Hurry Up! ⏱️' },
+              { img: '/stickers/rofl_shoes.png', name: 'ROFL Laugh 😂' },
+              { img: '/stickers/tea_sip.png', name: 'Tea Time ☕' }
+            ].map((stk) => (
               <button
-                key={emo}
+                key={stk.img}
                 onClick={() => {
                   sound.playClick();
-                  handleBroadcastSticker(emo);
+                  triggerSticker(stk.img, 0);
                 }}
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-sm sm:text-base flex items-center justify-center active:scale-90 transition-transform border border-slate-800/70"
-                title={`Send ${emo}`}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 p-1 flex items-center justify-center active:scale-90 transition-all border border-slate-800/70 group"
+                title={stk.name}
               >
-                {emo}
+                <img
+                  src={stk.img}
+                  alt={stk.name}
+                  className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform"
+                />
               </button>
             ))}
           </div>

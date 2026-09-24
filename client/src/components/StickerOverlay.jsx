@@ -13,7 +13,17 @@ export default function StickerOverlay({ stickers = [], playerCount = 4 }) {
 
   const isLeaving = stk.isLeaving;
   const playerColor = stk.color || '#F59E0B';
-  const isPhrase = Boolean(stk.content && (stk.content.length > 3 || stk.type === 'text'));
+  const isImageSticker = Boolean(stk.content && (stk.content.startsWith('/stickers/') || stk.content.includes('.png') || stk.type === 'image'));
+  const isPhrase = !isImageSticker && Boolean(stk.content && (stk.content.length > 3 || stk.type === 'text'));
+
+  let customAnimClass = 'animate-sticker-bob';
+  if (isImageSticker) {
+    if (stk.content.includes('flex_beard')) customAnimClass = 'animate-sticker-flex';
+    else if (stk.content.includes('king_crown')) customAnimClass = 'animate-sticker-crown';
+    else if (stk.content.includes('hurry_watch')) customAnimClass = 'animate-sticker-hurry';
+    else if (stk.content.includes('rofl_shoes')) customAnimClass = 'animate-sticker-rofl';
+    else if (stk.content.includes('tea_sip')) customAnimClass = 'animate-sticker-tea';
+  }
 
   const pIdx = stk.playerIndex !== undefined ? stk.playerIndex : -1;
 
@@ -47,8 +57,16 @@ export default function StickerOverlay({ stickers = [], playerCount = 4 }) {
         style={posStyle}
       >
         {/* Main Floating Reaction Sticker / Message Bubble */}
-        <div className="animate-sticker-bob flex flex-col items-center">
-          {isPhrase ? (
+        <div className={`${customAnimClass} flex flex-col items-center`}>
+          {isImageSticker ? (
+            <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.9)]">
+              <img
+                src={stk.content}
+                alt="Animated 3D Sticker"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_16px_rgba(251,191,36,0.7)] select-none"
+              />
+            </div>
+          ) : isPhrase ? (
             <div
               className="px-4 py-2.5 rounded-2xl bg-slate-950/95 border-2 shadow-2xl text-sm sm:text-base font-black text-white flex items-center gap-2 backdrop-blur-md max-w-[220px] text-center"
               style={{
