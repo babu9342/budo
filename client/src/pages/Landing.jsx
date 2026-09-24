@@ -32,6 +32,7 @@ export default function Landing() {
     if (user) {
       navigate('/game');
     } else {
+      sessionStorage.setItem('budo_redirect_after_login', '/game');
       navigate('/login');
     }
   };
