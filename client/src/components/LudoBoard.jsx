@@ -360,23 +360,45 @@ function Classic4PlayerBoard({
     }
   }
 
-  // Safe non-overlapping coordinates constrained safely inside each home quadrant:
-  // - >= 20% inset from board edges: prevents any overflow / clipping of top badges & text
-  // - Safely away from runway path cells & star cells (Cols 6-8 and Rows 6-8)
-  // - Green's turn -> Green home square (top-right quadrant)
-  // - Yellow's turn -> Yellow home square (bottom-right quadrant)
-  // - Blue's turn -> Blue home square (bottom-left quadrant)
-  // - Red's turn -> Red home square (top-left quadrant)
-  let dicePos = { top: '22%', left: '20%' };
-  if (turnColor === 'red') {
-    dicePos = { top: '22%', left: '20%' };
-  } else if (turnColor === 'green') {
-    dicePos = { top: '22%', left: '78%' };
-  } else if (turnColor === 'yellow' || turnColor === 'orange') {
-    dicePos = { top: '78%', left: '78%' };
-  } else if (turnColor === 'blue' || turnColor === 'cyan') {
-    dicePos = { top: '78%', left: '20%' };
-  }
+  // 4 Constant Corner Boxes Configuration
+  const CORNER_BOXES = [
+    {
+      id: 'red',
+      key: 'red',
+      name: 'Red',
+      player: redPlayer,
+      colorHex: redPlayer?.color?.hex || '#EF4444',
+      pos: { top: '22%', left: '20%' }
+    },
+    {
+      id: 'green',
+      key: 'green',
+      name: 'Green',
+      player: greenPlayer,
+      colorHex: greenPlayer?.color?.hex || '#10B981',
+      pos: { top: '22%', left: '78%' }
+    },
+    {
+      id: 'yellow',
+      key: 'yellow',
+      name: 'Yellow',
+      player: yellowPlayer,
+      colorHex: yellowPlayer?.color?.hex || '#F59E0B',
+      pos: { top: '78%', left: '78%' }
+    },
+    {
+      id: 'blue',
+      key: 'blue',
+      name: 'Blue',
+      player: bluePlayer,
+      colorHex: bluePlayer?.color?.hex || '#3B82F6',
+      pos: { top: '78%', left: '20%' }
+    }
+  ];
+
+  const activeBox = CORNER_BOXES.find(b => b.key === turnColor) || CORNER_BOXES[0];
+  const activeBoxPos = activeBox.pos;
+  const activeBoxColor = activeBox.colorHex;
 
   return (
     <div
@@ -451,7 +473,7 @@ function Classic4PlayerBoard({
         {renderSubGrid(6, 8, 0, 5, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
       </div>
 
-      {/* 5. CENTER: Finish Victory Triangles & BUDO Emblem (rows 6-8, cols 6-8) */}
+      {/* 5. CENTER: Finish Victory Triangles & BUDO Center Wedge (rows 6-8, cols 6-8) */}
       <div
         className="col-span-3 row-span-3 relative flex items-center justify-center shadow-2xl overflow-hidden rounded-xl"
         style={theme.isPachisi
@@ -506,15 +528,49 @@ function Classic4PlayerBoard({
         </div>
       </div>
 
-      {/* 🎲 DYNAMIC SLIDING DICE POSITIONED NEXT TO CURRENT TURN'S HOME SQUARE */}
+      {/* 4 CONSTANT CORNER DICE BOXES (Fixed, always visible, non-moving) */}
+      {CORNER_BOXES.map((box) => {
+        const isCurrentTurnBox = turnColor === box.key;
+        return (
+          <div
+            key={box.id}
+            className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
+              isCurrentTurnBox
+                ? 'w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 bg-slate-950/40 border border-slate-800/60 opacity-40'
+            }`}
+            style={{
+              top: box.pos.top,
+              left: box.pos.left,
+              borderColor: isCurrentTurnBox ? box.colorHex : 'rgba(255,255,255,0.12)',
+              boxShadow: isCurrentTurnBox
+                ? `0 0 25px ${box.colorHex}88, inset 0 0 14px ${box.colorHex}44`
+                : undefined,
+              transform: `translate(-50%, -50%) rotate(${-boardRotation}deg)`
+            }}
+          >
+            {/* Empty Box Placeholder when dice is in another corner */}
+            {!isCurrentTurnBox && (
+              <div
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-dashed flex items-center justify-center opacity-30"
+                style={{ borderColor: box.colorHex }}
+              >
+                <span className="text-xs" style={{ color: box.colorHex }}>🎲</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies between the 4 fixed boxes (450ms) */}
       {diceProps && (
         <div 
           className="absolute z-30 pointer-events-auto flex items-center justify-center"
           style={{
-            top: dicePos.top,
-            left: dicePos.left,
+            top: activeBoxPos.top,
+            left: activeBoxPos.left,
             transform: `translate(-50%, -50%) rotate(${-boardRotation}deg)`,
-            transition: 'top 300ms cubic-bezier(0.4, 0, 0.2, 1), left 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'top 450ms cubic-bezier(0.34, 1.56, 0.64, 1), left 450ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}
         >
           <Dice
@@ -522,7 +578,7 @@ function Classic4PlayerBoard({
             isRolling={diceProps.isRolling}
             disabled={diceProps.disabled}
             onRoll={diceProps.onRoll}
-            playerColor={diceProps.playerColor}
+            playerColor={diceProps.playerColor || activeBoxColor}
             timerSeconds={diceProps.timerSeconds}
             isUrgent={diceProps.isUrgent}
             inCenter={true}
