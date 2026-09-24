@@ -39,17 +39,40 @@ export default function Result() {
     <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-6 text-center">
         {/* Crown & Banner */}
-        <div className="flex flex-col items-center space-y-2">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 p-1 shadow-xl shadow-amber-500/40 flex items-center justify-center animate-bounce-subtle">
-            <Crown className="w-10 h-10 text-slate-950 fill-slate-950" />
+        <div className="flex flex-col items-center space-y-2.5">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 p-1 shadow-2xl shadow-pink-500/40 flex items-center justify-center animate-bounce-subtle">
+              <Crown className="w-10 h-10 text-white fill-white" />
+            </div>
+            <span className="absolute -top-1 -right-1 text-2xl animate-bounce">💖</span>
+            <span className="absolute -bottom-1 -left-1 text-2xl animate-pulse">✨</span>
           </div>
 
-          <h2 className="text-2xl font-black text-white">
-            {isUserWinner ? '🎉 YOU WIN!' : 'Match Finished!'}
+          <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-300 to-amber-300 drop-shadow-md">
+            {isUserWinner ? '💖 YOU WON OUR HEARTS! 💖' : 'Match Finished!'}
           </h2>
-          <p className="text-xs text-amber-300 font-bold uppercase tracking-wider">
-            {isUserWinner ? 'Congratulations Champion!' : `${winner?.username || 'Player'} Won the match!`}
+          <p className="text-xs text-pink-200/90 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+            {isUserWinner ? (
+              <>
+                <span>👑</span>
+                <span>Champion of the Game!</span>
+                <span>✨</span>
+              </>
+            ) : (
+              <span>{winner?.username || 'Player'} Won the match! 🎉</span>
+            )}
           </p>
+
+          {/* Heart Celebration Stream */}
+          {isUserWinner && (
+            <div className="flex items-center justify-center gap-2 text-xl animate-pulse pt-1">
+              <span>🥰</span>
+              <span>❤️</span>
+              <span>✨</span>
+              <span>🏆</span>
+              <span>🎉</span>
+            </div>
+          )}
         </div>
 
         {/* Points Reward Card */}

@@ -10,7 +10,7 @@ import { BOARD_THEMES } from '../game/boardThemes';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, RotateCcw, Bot, Users, Palette, Clock, Check, Smile } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Bot, Users, Palette, Clock, Check, Smile, Crown } from 'lucide-react';
 
 export default function OfflineGame() {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ export default function OfflineGame() {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
+  const [winBanner, setWinBanner] = useState(null);
 
   const reactionTimerRef = useRef(null);
   const reactionFadeTimerRef = useRef(null);
@@ -161,9 +162,18 @@ export default function OfflineGame() {
         triggerHaptic('light');
       }
       if (moveRes.gameOver) {
+        const winPlayer = moveRes.gameState?.winner || moveRes.gameState?.players?.find(p => p.finishedCount >= 4);
+        const isWinnerMe = winPlayer?.isHuman || winPlayer?.username === 'You';
+        const winnerName = winPlayer?.username || 'Player';
+        setWinBanner({ isMe: isWinnerMe, winnerName });
         sound.playVictory();
         triggerHaptic('victory');
-        confetti({ particleCount: 160, spread: 85, origin: { y: 0.6 } });
+        confetti({
+          particleCount: 220,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
+        });
       }
     }
   };
@@ -305,8 +315,18 @@ export default function OfflineGame() {
                       if (moveRes.outcome?.captures?.length > 0) sound.playCapture();
                       else sound.playMove();
                       if (moveRes.gameOver) {
+                        const winPlayer = moveRes.gameState?.winner || moveRes.gameState?.players?.find(p => p.finishedCount >= 4);
+                        const isWinnerMe = winPlayer?.isHuman || winPlayer?.username === 'You';
+                        const winnerName = winPlayer?.username || 'Player';
+                        setWinBanner({ isMe: isWinnerMe, winnerName });
                         sound.playVictory();
-                        confetti({ particleCount: 150, spread: 80 });
+                        triggerHaptic('victory');
+                        confetti({
+                          particleCount: 220,
+                          spread: 100,
+                          origin: { y: 0.5 },
+                          colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
+                        });
                       }
                     }
                   }
@@ -666,6 +686,68 @@ export default function OfflineGame() {
         onClose={() => setShowStickerPicker(false)}
         onSelectSticker={(stk) => triggerSticker(stk, 0)}
       />
+
+      {/* Immediate Victory Celebration Banner Modal */}
+      {winBanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in pointer-events-auto">
+          <div className="relative bg-gradient-to-b from-slate-900 via-[#1e102d] to-slate-950 border-2 border-pink-500/70 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-scale-up space-y-5">
+            
+            {/* Crown with Floating Hearts */}
+            <div className="relative flex items-center justify-center">
+              <span className="text-3xl sm:text-4xl animate-bounce">💖</span>
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 p-1 shadow-2xl shadow-pink-500/50 flex items-center justify-center mx-2.5 animate-pulse">
+                <Crown className="w-10 h-10 text-white fill-white" />
+              </div>
+              <span className="text-3xl sm:text-4xl animate-bounce" style={{ animationDelay: '200ms' }}>💖</span>
+            </div>
+
+            {/* Victory Headline */}
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-300 to-amber-300 drop-shadow-lg">
+                {winBanner.isMe ? '💖 YOU WON OUR HEARTS! 💖' : `${winBanner.winnerName} Won Our Hearts! 💖`}
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-pink-200/90 flex items-center justify-center gap-1.5 pt-0.5">
+                <span>👑</span>
+                <span>{winBanner.isMe ? 'Champion of the Match!' : 'Legendary Victory!'}</span>
+                <span>✨</span>
+              </p>
+            </div>
+
+            {/* Celebration Emojis Stream */}
+            <div className="flex items-center justify-center gap-2.5 text-2xl animate-pulse pt-1">
+              <span>🥰</span>
+              <span>❤️</span>
+              <span>✨</span>
+              <span>🏆</span>
+              <span>🎉</span>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  setWinBanner(null);
+                  startOfflineMatch();
+                }}
+                className="w-full py-3 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-pink-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Play Again</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setWinBanner(null);
+                  setGameStarted(false);
+                }}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 active:scale-95 transition-all"
+              >
+                Match Setup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

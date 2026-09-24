@@ -14,7 +14,7 @@ import { getBestAutoMove } from '../game/bot';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, MessageSquare, Palette, Clock, Check, Volume2, VolumeX, RotateCcw, Smile } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Palette, Clock, Check, Volume2, VolumeX, RotateCcw, Smile, Crown } from 'lucide-react';
 
 export default function GamePlay() {
   const { code } = useParams();
@@ -34,6 +34,7 @@ export default function GamePlay() {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
+  const [winBanner, setWinBanner] = useState(null);
 
   // Move Timer Feature (6-second countdown for move selection)
   const [moveTimerSeconds, setMoveTimerSeconds] = useState(6);
@@ -139,24 +140,42 @@ export default function GamePlay() {
       }
 
       if (data.gameOver) {
+        const winPlayer = data.gameState?.winner || data.gameState?.players?.find(p => p.finishedCount >= 4);
+        const isWinnerMe = winPlayer?.userId === user?.id || (winPlayer && winPlayer.username === user?.username);
+        const winnerName = winPlayer?.username || 'Player';
+        setWinBanner({ isMe: isWinnerMe, winnerName });
         sound.playVictory();
         triggerHaptic('victory');
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        confetti({
+          particleCount: 220,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
+        });
         setTimeout(() => {
           navigate('/result');
-        }, 2200);
+        }, 3000);
       }
     });
 
     // Listen to game finish
     socket.on('game:finish', (data) => {
       dispatch(setGameState(data.gameState));
+      const winPlayer = data.gameState?.winner || data.gameState?.players?.find(p => p.finishedCount >= 4);
+      const isWinnerMe = winPlayer?.userId === user?.id || (winPlayer && winPlayer.username === user?.username);
+      const winnerName = winPlayer?.username || 'Player';
+      setWinBanner({ isMe: isWinnerMe, winnerName });
       sound.playVictory();
       triggerHaptic('victory');
-      confetti({ particleCount: 180, spread: 90, origin: { y: 0.6 } });
+      confetti({
+        particleCount: 240,
+        spread: 110,
+        origin: { y: 0.5 },
+        colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
+      });
       setTimeout(() => {
         navigate('/result');
-      }, 2200);
+      }, 3000);
     });
 
     // Chat listeners
@@ -641,6 +660,48 @@ export default function GamePlay() {
         onClose={() => setShowStickerPicker(false)}
         onSelectSticker={handleSendChatSticker}
       />
+
+      {/* Immediate Victory Celebration Banner Modal */}
+      {winBanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in pointer-events-auto">
+          <div className="relative bg-gradient-to-b from-slate-900 via-[#1e102d] to-slate-950 border-2 border-pink-500/70 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-scale-up space-y-4">
+            
+            {/* Crown with Floating Hearts */}
+            <div className="relative flex items-center justify-center">
+              <span className="text-3xl sm:text-4xl animate-bounce">💖</span>
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 p-1 shadow-2xl shadow-pink-500/50 flex items-center justify-center mx-2.5 animate-pulse">
+                <Crown className="w-10 h-10 text-white fill-white" />
+              </div>
+              <span className="text-3xl sm:text-4xl animate-bounce" style={{ animationDelay: '200ms' }}>💖</span>
+            </div>
+
+            {/* Victory Headline */}
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-rose-300 to-amber-300 drop-shadow-lg">
+                {winBanner.isMe ? '💖 YOU WON OUR HEARTS! 💖' : `${winBanner.winnerName} Won Our Hearts! 💖`}
+              </h2>
+              <p className="text-xs sm:text-sm font-bold text-pink-200/90 flex items-center justify-center gap-1.5 pt-0.5">
+                <span>👑</span>
+                <span>{winBanner.isMe ? 'Champion of the Match!' : 'Legendary Victory!'}</span>
+                <span>✨</span>
+              </p>
+            </div>
+
+            {/* Celebration Emojis Stream */}
+            <div className="flex items-center justify-center gap-2.5 text-2xl animate-pulse pt-1">
+              <span>🥰</span>
+              <span>❤️</span>
+              <span>✨</span>
+              <span>🏆</span>
+              <span>🎉</span>
+            </div>
+
+            <p className="text-[11px] font-bold text-slate-400 animate-pulse">
+              Loading Match Results...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
