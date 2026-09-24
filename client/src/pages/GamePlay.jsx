@@ -413,15 +413,6 @@ export default function GamePlay() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Animated Sticker Reactions Button */}
-          <button
-            onClick={() => { sound.playClick(); setShowStickerPicker(true); }}
-            className="p-1.5 rounded-xl bg-slate-900 text-amber-400 hover:text-amber-300 border border-slate-800 active:scale-90 transition-transform flex items-center justify-center shadow-sm"
-            title="Send Animated Sticker Reaction"
-          >
-            <Smile className="w-4 h-4" />
-          </button>
-
           {/* Theme Chooser Button */}
           <button
             onClick={() => { sound.playClick(); setShowThemeModal(true); }}
@@ -434,24 +425,9 @@ export default function GamePlay() {
           <button
             onClick={() => dispatch(toggleSound())}
             className="p-1.5 rounded-xl bg-slate-900 text-slate-400 border border-slate-800"
+            title="Toggle Sound"
           >
             {isSoundEnabled ? <Volume2 className="w-4 h-4 text-blue-400" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          <button
-            onClick={() => {
-              sound.playClick();
-              setChatOpen(true);
-              setUnreadChat(0);
-            }}
-            className="relative p-1.5 rounded-xl bg-slate-900 text-blue-400 border border-slate-800 active:scale-90"
-          >
-            <MessageSquare className="w-4 h-4" />
-            {unreadChat > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
-                {unreadChat}
-              </span>
-            )}
           </button>
         </div>
       </header>
@@ -470,28 +446,96 @@ export default function GamePlay() {
         ))}
       </div>
 
-      {/* Main Game Arena with Embedded Center Dice & Floating Stickers */}
-      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden">
-        {/* Dynamic Ludo Board with Center Dice & Step-by-Step Animation */}
-        <div className="w-full h-full flex items-center justify-center min-h-0">
-          <LudoBoard
-            gameState={gameState}
-            onSelectToken={handleSelectToken}
-            validTokens={isMyTurn ? validTokens : []}
-            themeName={themeName}
-            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
-            myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
-            stickers={floatingStickers}
-            diceProps={{
-              value: gameState.diceValue,
-              isRolling: diceRolling,
-              disabled: !isMyTurn || !isWaitingRoll,
-              onRoll: handleRollDice,
-              playerColor: currentPlayer?.color?.hex,
-              timerSeconds: isMyTurn && isWaitingRoll ? rollTimerSeconds : null,
-              isUrgent: isRollUrgent
-            }}
-          />
+      {/* Main Game Arena with Embedded Center Dice, Constant Left/Right Emoji & Chat Controls */}
+      <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden relative">
+        <div className="relative w-full h-full flex items-center justify-center min-h-0">
+          
+          {/* Constant Left Dock: Quick Emoji Reactions & Sticker Launcher */}
+          <div className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl border border-slate-800/90 shadow-2xl pointer-events-auto">
+            <button
+              onClick={() => { sound.playClick(); setShowStickerPicker(true); }}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-amber-500/20 active:scale-90 transition-transform"
+              title="All Stickers & Emojis"
+            >
+              <Smile className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
+            </button>
+            <div className="w-full h-px bg-slate-800/80 my-0.5" />
+            {['😂', '🔥', '😎', '😡'].map((emo) => (
+              <button
+                key={emo}
+                onClick={() => {
+                  sound.playClick();
+                  handleSendChatSticker(emo);
+                }}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-sm sm:text-base flex items-center justify-center active:scale-90 transition-transform border border-slate-800/70"
+                title={`Send ${emo}`}
+              >
+                {emo}
+              </button>
+            ))}
+          </div>
+
+          {/* Dynamic Ludo Board with Center Dice & Step-by-Step Animation */}
+          <div className="w-full h-full flex items-center justify-center min-h-0 px-9 sm:px-11">
+            <LudoBoard
+              gameState={gameState}
+              onSelectToken={handleSelectToken}
+              validTokens={isMyTurn ? validTokens : []}
+              themeName={themeName}
+              moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
+              myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
+              stickers={floatingStickers}
+              diceProps={{
+                value: gameState.diceValue,
+                isRolling: diceRolling,
+                disabled: !isMyTurn || !isWaitingRoll,
+                onRoll: handleRollDice,
+                playerColor: currentPlayer?.color?.hex,
+                timerSeconds: isMyTurn && isWaitingRoll ? rollTimerSeconds : null,
+                isUrgent: isRollUrgent
+              }}
+            />
+          </div>
+
+          {/* Constant Right Dock: Quick Messages & Chat Drawer Launcher */}
+          <div className="absolute right-0 sm:right-1 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl border border-slate-800/90 shadow-2xl pointer-events-auto">
+            <button
+              onClick={() => {
+                sound.playClick();
+                setChatOpen(true);
+                setUnreadChat(0);
+              }}
+              className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-500/20 active:scale-90 transition-transform"
+              title="Open Chat Drawer"
+            >
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+              {unreadChat > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse shadow">
+                  {unreadChat}
+                </span>
+              )}
+            </button>
+            <div className="w-full h-px bg-slate-800/80 my-0.5" />
+            {[
+              { label: 'GG! 👑', text: 'GG! 👑' },
+              { label: '🎯 Nice', text: 'Nice Move! 🎯' },
+              { label: '😅 Oops', text: 'Oops! 😅' },
+              { label: '👋 Bye', text: 'Bye Bye! 👋' }
+            ].map((msg) => (
+              <button
+                key={msg.label}
+                onClick={() => {
+                  sound.playClick();
+                  handleSendChatMessage(msg.text);
+                }}
+                className="px-1.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[9px] sm:text-[10px] font-black text-slate-200 border border-slate-800/70 active:scale-90 transition-transform whitespace-nowrap"
+                title={`Send "${msg.text}"`}
+              >
+                {msg.label}
+              </button>
+            ))}
+          </div>
+
         </div>
       </main>
 
