@@ -23,7 +23,7 @@ export default function LudoBoard({
   const currentTheme = BOARD_THEMES[themeName] || BOARD_THEMES.classic;
   const playerCount = gameState.players.length;
   const config = gameState.config;
-  const boardRotation = getBoardRotation(myPlayerIndex, gameState.players);
+  const boardRotation = 0; // Keep board fixed in standard standard orientation (Red Top-Left, Green Top-Right, Yellow Bottom-Right, Blue Bottom-Left)
 
 
   const [animatingPositions, setAnimatingPositions] = useState({});
