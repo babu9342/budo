@@ -443,7 +443,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored cleanly in the 4 extreme corners of the board)
+  // 4 Constant Corner Boxes Configuration (Anchored in the 4 corners of the board container)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -451,8 +451,8 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '4px', left: '4px' },
-      anchor: 'translate(0, 0)'
+      pos: { top: '3%', left: '3%' },
+      anchor: 'translate(0%, 0%)'
     },
     {
       id: 'green',
@@ -460,8 +460,8 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '4px', left: 'calc(100% - 4px)' },
-      anchor: 'translate(-100%, 0)'
+      pos: { top: '3%', left: '97%' },
+      anchor: 'translate(-100%, 0%)'
     },
     {
       id: 'yellow',
@@ -469,7 +469,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: 'calc(100% - 4px)', left: 'calc(100% - 4px)' },
+      pos: { top: '97%', left: '97%' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -478,7 +478,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: 'calc(100% - 4px)', left: '4px' },
+      pos: { top: '97%', left: '3%' },
       anchor: 'translate(0%, -100%)'
     }
   ];
@@ -627,9 +627,9 @@ function Classic4PlayerBoard({
         return (
           <div
             key={box.id}
-            className={`absolute z-10 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${isCurrentTurnBox
-                ? 'w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-slate-950/40 border border-slate-800/60 opacity-30'
+            className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${isCurrentTurnBox
+                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
               }`}
             style={{
               top: box.pos.top,
@@ -644,10 +644,10 @@ function Classic4PlayerBoard({
             {/* Empty Box Placeholder when dice is in another corner */}
             {!isCurrentTurnBox && (
               <div
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded border border-dashed flex items-center justify-center opacity-30"
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
                 style={{ borderColor: box.colorHex }}
               >
-                <span className="text-[9px]" style={{ color: box.colorHex }}>🎲</span>
+                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
               </div>
             )}
           </div>
