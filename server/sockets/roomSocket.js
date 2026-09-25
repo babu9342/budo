@@ -2,61 +2,94 @@ import { query } from '../config/db.js';
 import { gameManager } from '../game/gameEngine.js';
 
 // In-memory lobby player tracking
-const roomLobbies = new Map(); // roomId -> { code, hostId, maxPlayers, players: [] }
+// Indexed by both String(roomId) and String(roomCode)
+const roomLobbies = new Map();
+
+function findLobby(identifier) {
+  if (!identifier) return null;
+  return roomLobbies.get(String(identifier)) || null;
+}
+
+function saveLobby(lobby) {
+  if (!lobby) return;
+  if (lobby.roomId) {
+    roomLobbies.set(String(lobby.roomId), lobby);
+  }
+  if (lobby.roomCode) {
+    roomLobbies.set(String(lobby.roomCode), lobby);
+  }
+}
 
 export function setupRoomSocket(io, socket) {
   // Join Room Lobby
   socket.on('room:join', async ({ roomId, roomCode, user }) => {
     try {
-      socket.join(`room:${roomId}`);
-      socket.data.userId = user.id;
-      socket.data.roomId = roomId;
-      socket.data.username = user.username;
+      const primaryKey = String(roomId || roomCode);
+      socket.join(`room:${primaryKey}`);
+      if (roomCode && String(roomCode) !== primaryKey) {
+        socket.join(`room:${String(roomCode)}`);
+      }
+      if (roomId && String(roomId) !== primaryKey) {
+        socket.join(`room:${String(roomId)}`);
+      }
 
-      let lobby = roomLobbies.get(roomId);
+      socket.data.userId = user?.id;
+      socket.data.roomId = roomId;
+      socket.data.roomCode = roomCode;
+      socket.data.username = user?.username;
+
+      let lobby = findLobby(roomId) || findLobby(roomCode);
       if (!lobby) {
         let maxPlayers = 4;
         try {
-          const roomRes = await query('SELECT max_players FROM rooms WHERE id = $1 OR code = $1', [roomId]);
+          const roomRes = await query('SELECT max_players, code, host_id FROM rooms WHERE id = $1 OR code = $1', [primaryKey]);
           if (roomRes.rows.length > 0) {
             maxPlayers = Number(roomRes.rows[0].max_players) || 4;
+            if (!roomCode && roomRes.rows[0].code) {
+              roomCode = roomRes.rows[0].code;
+            }
           }
         } catch (e) {
           console.error('Failed to query room max_players:', e);
         }
 
         lobby = {
-          roomId,
-          roomCode,
-          hostId: user.id,
+          roomId: String(roomId || primaryKey),
+          roomCode: String(roomCode || primaryKey),
+          hostId: user?.id,
           maxPlayers,
           players: []
         };
-        roomLobbies.set(roomId, lobby);
+        saveLobby(lobby);
       }
 
-      const existingPlayerIdx = lobby.players.findIndex(p => p.userId === user.id);
-      if (existingPlayerIdx >= 0) {
-        lobby.players[existingPlayerIdx].socketId = socket.id;
-        lobby.players[existingPlayerIdx].isOnline = true;
-      } else {
-        // Strict capacity enforcement
-        if (lobby.players.length >= (lobby.maxPlayers || 4)) {
-          socket.emit('room:full', { message: 'Room is full' });
-          socket.emit('error', { message: 'Room is full' });
-          return;
+      if (user && user.id) {
+        const existingPlayerIdx = lobby.players.findIndex(p => String(p.userId) === String(user.id));
+        if (existingPlayerIdx >= 0) {
+          lobby.players[existingPlayerIdx].socketId = socket.id;
+          lobby.players[existingPlayerIdx].isOnline = true;
+          lobby.players[existingPlayerIdx].username = user.username || lobby.players[existingPlayerIdx].username;
+        } else {
+          // Strict capacity enforcement
+          if (lobby.players.length >= (lobby.maxPlayers || 4)) {
+            socket.emit('room:full', { message: 'Room is full' });
+            socket.emit('error', { message: 'Room is full' });
+            return;
+          }
+
+          lobby.players.push({
+            userId: user.id,
+            username: user.username,
+            avatarUrl: user.avatar_url,
+            rankingPoints: user.ranking_points || 1000,
+            socketId: socket.id,
+            isOnline: true,
+            playerIndex: lobby.players.length
+          });
         }
-
-        lobby.players.push({
-          userId: user.id,
-          username: user.username,
-          avatarUrl: user.avatar_url,
-          rankingPoints: user.ranking_points || 1000,
-          socketId: socket.id,
-          isOnline: true,
-          playerIndex: lobby.players.length
-        });
       }
+
+      saveLobby(lobby);
 
       // If an active game already exists for this room, notify joining player
       const activeGame = gameManager.getGame(roomId || roomCode);
@@ -68,7 +101,7 @@ export function setupRoomSocket(io, socket) {
         });
       }
 
-      io.to(`room:${roomId}`).emit('room:update', {
+      const updatePayload = {
         lobby: {
           roomId: lobby.roomId,
           roomCode: lobby.roomCode,
@@ -76,17 +109,11 @@ export function setupRoomSocket(io, socket) {
           maxPlayers: lobby.maxPlayers,
           players: lobby.players
         }
-      });
-      if (lobby.roomCode && lobby.roomCode !== roomId) {
-        io.to(`room:${lobby.roomCode}`).emit('room:update', {
-          lobby: {
-            roomId: lobby.roomId,
-            roomCode: lobby.roomCode,
-            hostId: lobby.hostId,
-            maxPlayers: lobby.maxPlayers,
-            players: lobby.players
-          }
-        });
+      };
+
+      io.to(`room:${lobby.roomId}`).emit('room:update', updatePayload);
+      if (lobby.roomCode && lobby.roomCode !== lobby.roomId) {
+        io.to(`room:${lobby.roomCode}`).emit('room:update', updatePayload);
       }
     } catch (err) {
       console.error('Socket room:join Error:', err);
@@ -94,19 +121,23 @@ export function setupRoomSocket(io, socket) {
   });
 
   // Kick / Remove Player from Room (Host Only)
-  socket.on('room:kickPlayer', ({ roomId, userId }) => {
-    const lobby = roomLobbies.get(roomId);
+  socket.on('room:kickPlayer', ({ roomId, roomCode, userId }) => {
+    const lobby = findLobby(roomId) || findLobby(roomCode);
     if (!lobby) return;
 
-    if (socket.data.userId !== lobby.hostId) {
+    const currentUserId = socket.data?.userId;
+    const isHost = String(currentUserId) === String(lobby.hostId) ||
+                   String(currentUserId) === String(lobby.players[0]?.userId);
+
+    if (!isHost) {
       socket.emit('error', { message: 'Only room host can remove players' });
       return;
     }
 
-    if (userId === lobby.hostId) return; // Cannot kick host
+    if (String(userId) === String(lobby.hostId)) return; // Cannot kick host
 
-    const kickedPlayer = lobby.players.find(p => p.userId === userId);
-    lobby.players = lobby.players.filter(p => p.userId !== userId);
+    const kickedPlayer = lobby.players.find(p => String(p.userId) === String(userId));
+    lobby.players = lobby.players.filter(p => String(p.userId) !== String(userId));
     lobby.players.forEach((p, idx) => { p.playerIndex = idx; });
 
     if (kickedPlayer && kickedPlayer.socketId) {
@@ -115,7 +146,9 @@ export function setupRoomSocket(io, socket) {
       });
     }
 
-    io.to(`room:${roomId}`).emit('room:update', {
+    saveLobby(lobby);
+
+    const updatePayload = {
       lobby: {
         roomId: lobby.roomId,
         roomCode: lobby.roomCode,
@@ -123,23 +156,17 @@ export function setupRoomSocket(io, socket) {
         maxPlayers: lobby.maxPlayers,
         players: lobby.players
       }
-    });
-    if (lobby.roomCode && lobby.roomCode !== roomId) {
-      io.to(`room:${lobby.roomCode}`).emit('room:update', {
-        lobby: {
-          roomId: lobby.roomId,
-          roomCode: lobby.roomCode,
-          hostId: lobby.hostId,
-          maxPlayers: lobby.maxPlayers,
-          players: lobby.players
-        }
-      });
+    };
+
+    io.to(`room:${lobby.roomId}`).emit('room:update', updatePayload);
+    if (lobby.roomCode && lobby.roomCode !== lobby.roomId) {
+      io.to(`room:${lobby.roomCode}`).emit('room:update', updatePayload);
     }
   });
 
   // Add Bot Player into Room Lobby
-  socket.on('room:addBot', ({ roomId, difficulty = 'medium' }) => {
-    const lobby = roomLobbies.get(roomId);
+  socket.on('room:addBot', ({ roomId, roomCode, difficulty = 'medium' }) => {
+    const lobby = findLobby(roomId) || findLobby(roomCode);
     if (!lobby || lobby.players.length >= (lobby.maxPlayers || 4)) return;
 
     const botIndex = lobby.players.length + 1;
@@ -156,7 +183,9 @@ export function setupRoomSocket(io, socket) {
     };
 
     lobby.players.push(botUser);
-    io.to(`room:${roomId}`).emit('room:update', {
+    saveLobby(lobby);
+
+    const updatePayload = {
       lobby: {
         roomId: lobby.roomId,
         roomCode: lobby.roomCode,
@@ -164,58 +193,120 @@ export function setupRoomSocket(io, socket) {
         maxPlayers: lobby.maxPlayers,
         players: lobby.players
       }
-    });
-    if (lobby.roomCode && lobby.roomCode !== roomId) {
-      io.to(`room:${lobby.roomCode}`).emit('room:update', {
-        lobby: {
-          roomId: lobby.roomId,
-          roomCode: lobby.roomCode,
-          hostId: lobby.hostId,
-          maxPlayers: lobby.maxPlayers,
-          players: lobby.players
-        }
-      });
+    };
+
+    io.to(`room:${lobby.roomId}`).emit('room:update', updatePayload);
+    if (lobby.roomCode && lobby.roomCode !== lobby.roomId) {
+      io.to(`room:${lobby.roomCode}`).emit('room:update', updatePayload);
     }
   });
 
-  // Host starts the game - strictly requires exact player count
-  socket.on('room:start', async ({ roomId }) => {
-    const lobby = roomLobbies.get(roomId);
-    if (!lobby) return;
+  // Host starts the game
+  socket.on('room:start', async ({ roomId, roomCode }) => {
+    try {
+      let lobby = findLobby(roomId) || findLobby(roomCode);
 
-    // Verify host
-    if (socket.data.userId !== lobby.hostId) {
-      socket.emit('error', { message: 'Only room host can start the match' });
-      return;
-    }
+      if (!lobby) {
+        // Fallback: If lobby was not created yet, construct from DB or socket data
+        let maxPlayers = 4;
+        const lookupKey = roomId || roomCode;
+        try {
+          const roomRes = await query('SELECT id, code, max_players, host_id FROM rooms WHERE id = $1 OR code = $1', [lookupKey]);
+          if (roomRes.rows.length > 0) {
+            maxPlayers = Number(roomRes.rows[0].max_players) || 4;
+            roomId = roomRes.rows[0].id;
+            roomCode = roomRes.rows[0].code;
+          }
+        } catch (e) {
+          console.error('Fallback query error in room:start:', e);
+        }
 
-    const requiredPlayers = lobby.maxPlayers || 4;
-    if (lobby.players.length !== requiredPlayers) {
-      socket.emit('error', { message: `This room requires exactly ${requiredPlayers} players to start (${lobby.players.length}/${requiredPlayers} joined)` });
-      return;
-    }
+        lobby = {
+          roomId: String(roomId || lookupKey),
+          roomCode: String(roomCode || lookupKey),
+          hostId: socket.data?.userId,
+          maxPlayers,
+          players: [
+            {
+              userId: socket.data?.userId || -1,
+              username: socket.data?.username || 'Host',
+              avatarUrl: '/avatars/default.png',
+              rankingPoints: 1000,
+              socketId: socket.id,
+              isOnline: true,
+              playerIndex: 0
+            }
+          ]
+        };
+        saveLobby(lobby);
+      }
 
-    // Initialize Game Engine State with 30-min TTL lifecycle
-    const game = gameManager.createGame(roomId, lobby.players, lobby.players.length, lobby.roomCode);
-    const serialized = gameManager.serializeGame(game);
+      // Verify host
+      const currentUserId = socket.data?.userId;
+      const isHost = !lobby.hostId ||
+                     String(currentUserId) === String(lobby.hostId) ||
+                     String(currentUserId) === String(lobby.players[0]?.userId) ||
+                     lobby.players[0]?.socketId === socket.id;
 
-    io.to(`room:${roomId}`).emit('game:start', {
-      game: serialized
-    });
-    if (lobby.roomCode && lobby.roomCode !== roomId) {
-      io.to(`room:${lobby.roomCode}`).emit('game:start', {
+      if (!isHost) {
+        socket.emit('error', { message: 'Only room host can start the match' });
+        return;
+      }
+
+      // If fewer players than maxPlayers, fill the remaining slots with bots automatically
+      const targetCapacity = lobby.maxPlayers || 4;
+      while (lobby.players.length < targetCapacity) {
+        const botIndex = lobby.players.length + 1;
+        lobby.players.push({
+          userId: -1000 - botIndex,
+          username: `Bot ${['Alpha', 'Shadow', 'Turbo', 'Ninja', 'Blaze', 'Cosmo', 'Titan'][botIndex - 1] || botIndex}`,
+          avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=bot_${botIndex}`,
+          rankingPoints: 1000 + (botIndex * 50),
+          isBot: true,
+          botDifficulty: 'medium',
+          socketId: `bot_${Date.now()}_${botIndex}`,
+          isOnline: true,
+          playerIndex: lobby.players.length
+        });
+      }
+
+      saveLobby(lobby);
+
+      // Initialize Game Engine State with 30-min TTL lifecycle
+      const primaryGameId = lobby.roomId || lobby.roomCode || String(roomId);
+      const codeKey = lobby.roomCode || String(roomCode || roomId);
+      const game = gameManager.createGame(primaryGameId, lobby.players, lobby.players.length, codeKey);
+      const serialized = gameManager.serializeGame(game);
+
+      const startPayload = {
+        roomId: game.roomId,
+        roomCode: game.roomCode,
         game: serialized
-      });
+      };
+
+      // Broadcast game:start to all participants
+      io.to(`room:${lobby.roomId}`).emit('game:start', startPayload);
+      if (lobby.roomCode && lobby.roomCode !== lobby.roomId) {
+        io.to(`room:${lobby.roomCode}`).emit('game:start', startPayload);
+      }
+      if (roomId && String(roomId) !== lobby.roomId && String(roomId) !== lobby.roomCode) {
+        io.to(`room:${String(roomId)}`).emit('game:start', startPayload);
+      }
+    } catch (err) {
+      console.error('Socket room:start Error:', err);
+      socket.emit('error', { message: 'Failed to start match: ' + (err.message || 'Unknown error') });
     }
   });
 
   // Leave room
-  socket.on('room:leave', ({ roomId, userId }) => {
-    const lobby = roomLobbies.get(roomId);
+  socket.on('room:leave', ({ roomId, roomCode, userId }) => {
+    const lobby = findLobby(roomId) || findLobby(roomCode);
     if (lobby) {
-      lobby.players = lobby.players.filter(p => p.userId !== userId);
+      lobby.players = lobby.players.filter(p => String(p.userId) !== String(userId));
       lobby.players.forEach((p, idx) => { p.playerIndex = idx; });
-      io.to(`room:${roomId}`).emit('room:update', {
+      saveLobby(lobby);
+
+      const updatePayload = {
         lobby: {
           roomId: lobby.roomId,
           roomCode: lobby.roomCode,
@@ -223,19 +314,15 @@ export function setupRoomSocket(io, socket) {
           maxPlayers: lobby.maxPlayers,
           players: lobby.players
         }
-      });
-      if (lobby.roomCode && lobby.roomCode !== roomId) {
-        io.to(`room:${lobby.roomCode}`).emit('room:update', {
-          lobby: {
-            roomId: lobby.roomId,
-            roomCode: lobby.roomCode,
-            hostId: lobby.hostId,
-            maxPlayers: lobby.maxPlayers,
-            players: lobby.players
-          }
-        });
+      };
+
+      io.to(`room:${lobby.roomId}`).emit('room:update', updatePayload);
+      if (lobby.roomCode && lobby.roomCode !== lobby.roomId) {
+        io.to(`room:${lobby.roomCode}`).emit('room:update', updatePayload);
       }
     }
-    socket.leave(`room:${roomId}`);
+    if (roomId) socket.leave(`room:${roomId}`);
+    if (roomCode) socket.leave(`room:${roomCode}`);
   });
 }
+

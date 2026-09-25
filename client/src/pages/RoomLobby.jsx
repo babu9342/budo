@@ -89,12 +89,18 @@ export default function RoomLobby() {
       setRoomError('This room is full and cannot accept more players.');
     });
 
+    // 7. Listen to general socket errors
+    socket.on('error', (err) => {
+      setRoomError(err?.message || 'Failed to start match');
+    });
+
     return () => {
       socket.off('room:update');
       socket.off('game:start');
       socket.off('game:alreadyStarted');
       socket.off('room:kicked');
       socket.off('room:full');
+      socket.off('error');
     };
   }, [code, user, dispatch, navigate, socket]);
 
@@ -129,9 +135,10 @@ export default function RoomLobby() {
 
   const handleAddBot = () => {
     sound.playClick();
-    if (currentRoom && lobbyPlayers.length < maxPlayers) {
+    if (lobbyPlayers.length < maxPlayers) {
       socket.emit('room:addBot', {
-        roomId: currentRoom.id,
+        roomId: currentRoom?.id || code,
+        roomCode: code,
         difficulty: 'medium'
       });
     }
@@ -139,27 +146,28 @@ export default function RoomLobby() {
 
   const handleKickPlayer = (targetUserId, targetUsername) => {
     sound.playClick();
-    if (!isHost || !currentRoom) return;
+    if (!isHost) return;
 
     if (window.confirm(`Are you sure you want to remove ${targetUsername} from the room?`)) {
       socket.emit('room:kickPlayer', {
-        roomId: currentRoom.id,
+        roomId: currentRoom?.id || code,
+        roomCode: code,
         userId: targetUserId
       });
     }
   };
 
   const handleStartGame = () => {
-    if (lobbyPlayers.length !== maxPlayers) return;
+    setRoomError('');
     sound.playVictory();
     triggerHaptic('heavy');
-    if (currentRoom) {
-      socket.emit('room:start', { roomId: currentRoom.id });
-    }
+    socket.emit('room:start', {
+      roomId: currentRoom?.id || code,
+      roomCode: code
+    });
   };
 
   const isRoomFull = lobbyPlayers.length >= maxPlayers;
-  const isReadyToStart = lobbyPlayers.length === maxPlayers;
 
   return (
     <div className="min-h-screen bg-budo-bg pb-16 flex flex-col items-center">
@@ -310,18 +318,13 @@ export default function RoomLobby() {
           {isHost ? (
             <button
               onClick={handleStartGame}
-              disabled={!isReadyToStart}
-              className={`w-full py-4 text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all ${
-                isReadyToStart
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/30'
-                  : 'bg-slate-800/80 border border-slate-700/50 text-slate-400 cursor-not-allowed'
-              }`}
+              className="w-full py-4 text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/30"
             >
-              <Play className={`w-4 h-4 ${isReadyToStart ? 'fill-slate-950' : 'fill-slate-500'}`} />
+              <Play className="w-4 h-4 fill-slate-950" />
               <span>
-                {isReadyToStart
+                {isRoomFull
                   ? `Start ${maxPlayers}-Player Match Now`
-                  : `Waiting for Players (${lobbyPlayers.length}/${maxPlayers} Required)`}
+                  : `Start Match Now (${lobbyPlayers.length}/${maxPlayers} Players)`}
               </span>
             </button>
           ) : (
@@ -330,7 +333,7 @@ export default function RoomLobby() {
               <span>
                 {isRoomFull
                   ? 'All players joined! Waiting for host to start match...'
-                  : `Waiting for players to join (${lobbyPlayers.length}/${maxPlayers})...`}
+                  : `Waiting for host to start match (${lobbyPlayers.length}/${maxPlayers} Joined)...`}
               </span>
             </div>
           )}
@@ -339,3 +342,4 @@ export default function RoomLobby() {
     </div>
   );
 }
+
