@@ -29,7 +29,11 @@ export default function JoinRedirect() {
       .then((res) => {
         if (res.data.success) {
           dispatch(setRoom({ room: res.data.room, isHost: false }));
-          navigate(`/room/${code}`);
+          if (res.data.isGameActive || res.data.room?.status === 'PLAYING') {
+            navigate(`/game/${code}`);
+          } else {
+            navigate(`/room/${code}`);
+          }
         } else {
           navigate('/join-room');
         }

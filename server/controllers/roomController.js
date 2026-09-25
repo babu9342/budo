@@ -86,13 +86,29 @@ export async function joinRoom(req, res) {
     }
 
     const room = roomResult.rows[0];
+    const currentPlayers = await query(`SELECT * FROM room_players WHERE room_id = $1`, [room.id]);
+    const alreadyJoined = currentPlayers.rows.some(p => p.user_id === userId);
+
+    if (room.status === 'PLAYING') {
+      if (alreadyJoined) {
+        return res.json({
+          success: true,
+          message: 'Rejoining active match',
+          room,
+          isGameActive: true
+        });
+      } else {
+        return res.status(400).json({ success: false, message: 'Game has already started in this room' });
+      }
+    }
+
+    if (room.status === 'FINISHED') {
+      return res.status(400).json({ success: false, message: 'This game has ended' });
+    }
 
     if (room.status !== 'WAITING') {
       return res.status(400).json({ success: false, message: 'Game has already started or ended in this room' });
     }
-
-    const currentPlayers = await query(`SELECT * FROM room_players WHERE room_id = $1`, [room.id]);
-    const alreadyJoined = currentPlayers.rows.some(p => p.user_id === userId);
 
     if (!alreadyJoined) {
       if (currentPlayers.rows.length >= room.max_players) {

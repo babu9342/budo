@@ -15,10 +15,21 @@ export function setupRoomSocket(io, socket) {
 
       let lobby = roomLobbies.get(roomId);
       if (!lobby) {
+        let maxPlayers = 4;
+        try {
+          const roomRes = await query('SELECT max_players FROM rooms WHERE id = $1 OR code = $1', [roomId]);
+          if (roomRes.rows.length > 0) {
+            maxPlayers = Number(roomRes.rows[0].max_players) || 4;
+          }
+        } catch (e) {
+          console.error('Failed to query room max_players:', e);
+        }
+
         lobby = {
           roomId,
           roomCode,
           hostId: user.id,
+          maxPlayers,
           players: []
         };
         roomLobbies.set(roomId, lobby);
@@ -29,15 +40,31 @@ export function setupRoomSocket(io, socket) {
         lobby.players[existingPlayerIdx].socketId = socket.id;
         lobby.players[existingPlayerIdx].isOnline = true;
       } else {
+        // Strict capacity enforcement
+        if (lobby.players.length >= (lobby.maxPlayers || 4)) {
+          socket.emit('room:full', { message: 'Room is full' });
+          socket.emit('error', { message: 'Room is full' });
+          return;
+        }
+
         lobby.players.push({
           userId: user.id,
           username: user.username,
           avatarUrl: user.avatar_url,
           rankingPoints: user.ranking_points || 1000,
-          isReady: lobby.players.length === 0, // Host is ready by default
           socketId: socket.id,
           isOnline: true,
           playerIndex: lobby.players.length
+        });
+      }
+
+      // If an active game already exists for this room, notify joining player
+      const activeGame = gameManager.getGame(roomId || roomCode);
+      if (activeGame && activeGame.phase !== 'GAME_OVER' && !gameManager.isGameExpired(activeGame)) {
+        socket.emit('game:alreadyStarted', {
+          roomId: activeGame.roomId,
+          roomCode: activeGame.roomCode,
+          game: gameManager.serializeGame(activeGame)
         });
       }
 
@@ -46,30 +73,74 @@ export function setupRoomSocket(io, socket) {
           roomId: lobby.roomId,
           roomCode: lobby.roomCode,
           hostId: lobby.hostId,
+          maxPlayers: lobby.maxPlayers,
           players: lobby.players
         }
       });
+      if (lobby.roomCode && lobby.roomCode !== roomId) {
+        io.to(`room:${lobby.roomCode}`).emit('room:update', {
+          lobby: {
+            roomId: lobby.roomId,
+            roomCode: lobby.roomCode,
+            hostId: lobby.hostId,
+            maxPlayers: lobby.maxPlayers,
+            players: lobby.players
+          }
+        });
+      }
     } catch (err) {
       console.error('Socket room:join Error:', err);
     }
   });
 
-  // Ready status toggle
-  socket.on('room:ready', ({ roomId, userId, isReady }) => {
+  // Kick / Remove Player from Room (Host Only)
+  socket.on('room:kickPlayer', ({ roomId, userId }) => {
     const lobby = roomLobbies.get(roomId);
     if (!lobby) return;
 
-    const player = lobby.players.find(p => p.userId === userId);
-    if (player) {
-      player.isReady = isReady;
-      io.to(`room:${roomId}`).emit('room:update', { lobby });
+    if (socket.data.userId !== lobby.hostId) {
+      socket.emit('error', { message: 'Only room host can remove players' });
+      return;
+    }
+
+    if (userId === lobby.hostId) return; // Cannot kick host
+
+    const kickedPlayer = lobby.players.find(p => p.userId === userId);
+    lobby.players = lobby.players.filter(p => p.userId !== userId);
+    lobby.players.forEach((p, idx) => { p.playerIndex = idx; });
+
+    if (kickedPlayer && kickedPlayer.socketId) {
+      io.to(kickedPlayer.socketId).emit('room:kicked', {
+        message: 'You were removed from the room by the host.'
+      });
+    }
+
+    io.to(`room:${roomId}`).emit('room:update', {
+      lobby: {
+        roomId: lobby.roomId,
+        roomCode: lobby.roomCode,
+        hostId: lobby.hostId,
+        maxPlayers: lobby.maxPlayers,
+        players: lobby.players
+      }
+    });
+    if (lobby.roomCode && lobby.roomCode !== roomId) {
+      io.to(`room:${lobby.roomCode}`).emit('room:update', {
+        lobby: {
+          roomId: lobby.roomId,
+          roomCode: lobby.roomCode,
+          hostId: lobby.hostId,
+          maxPlayers: lobby.maxPlayers,
+          players: lobby.players
+        }
+      });
     }
   });
 
   // Add Bot Player into Room Lobby
   socket.on('room:addBot', ({ roomId, difficulty = 'medium' }) => {
     const lobby = roomLobbies.get(roomId);
-    if (!lobby || lobby.players.length >= 8) return;
+    if (!lobby || lobby.players.length >= (lobby.maxPlayers || 4)) return;
 
     const botIndex = lobby.players.length + 1;
     const botUser = {
@@ -77,7 +148,6 @@ export function setupRoomSocket(io, socket) {
       username: `Bot ${['Alpha', 'Shadow', 'Turbo', 'Ninja', 'Blaze', 'Cosmo', 'Titan'][botIndex - 1] || botIndex}`,
       avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=bot_${botIndex}`,
       rankingPoints: 1000 + (botIndex * 50),
-      isReady: true,
       isBot: true,
       botDifficulty: difficulty,
       socketId: `bot_${Date.now()}_${botIndex}`,
@@ -86,10 +156,29 @@ export function setupRoomSocket(io, socket) {
     };
 
     lobby.players.push(botUser);
-    io.to(`room:${roomId}`).emit('room:update', { lobby });
+    io.to(`room:${roomId}`).emit('room:update', {
+      lobby: {
+        roomId: lobby.roomId,
+        roomCode: lobby.roomCode,
+        hostId: lobby.hostId,
+        maxPlayers: lobby.maxPlayers,
+        players: lobby.players
+      }
+    });
+    if (lobby.roomCode && lobby.roomCode !== roomId) {
+      io.to(`room:${lobby.roomCode}`).emit('room:update', {
+        lobby: {
+          roomId: lobby.roomId,
+          roomCode: lobby.roomCode,
+          hostId: lobby.hostId,
+          maxPlayers: lobby.maxPlayers,
+          players: lobby.players
+        }
+      });
+    }
   });
 
-  // Host starts the game
+  // Host starts the game - strictly requires exact player count
   socket.on('room:start', async ({ roomId }) => {
     const lobby = roomLobbies.get(roomId);
     if (!lobby) return;
@@ -100,17 +189,24 @@ export function setupRoomSocket(io, socket) {
       return;
     }
 
-    if (lobby.players.length < 2) {
-      socket.emit('error', { message: 'At least 2 players are required to start' });
+    const requiredPlayers = lobby.maxPlayers || 4;
+    if (lobby.players.length !== requiredPlayers) {
+      socket.emit('error', { message: `This room requires exactly ${requiredPlayers} players to start (${lobby.players.length}/${requiredPlayers} joined)` });
       return;
     }
 
-    // Initialize Game Engine State
-    const game = gameManager.createGame(roomId, lobby.players, lobby.players.length);
+    // Initialize Game Engine State with 30-min TTL lifecycle
+    const game = gameManager.createGame(roomId, lobby.players, lobby.players.length, lobby.roomCode);
+    const serialized = gameManager.serializeGame(game);
 
     io.to(`room:${roomId}`).emit('game:start', {
-      game: gameManager.serializeGame(game)
+      game: serialized
     });
+    if (lobby.roomCode && lobby.roomCode !== roomId) {
+      io.to(`room:${lobby.roomCode}`).emit('game:start', {
+        game: serialized
+      });
+    }
   });
 
   // Leave room
@@ -118,7 +214,27 @@ export function setupRoomSocket(io, socket) {
     const lobby = roomLobbies.get(roomId);
     if (lobby) {
       lobby.players = lobby.players.filter(p => p.userId !== userId);
-      io.to(`room:${roomId}`).emit('room:update', { lobby });
+      lobby.players.forEach((p, idx) => { p.playerIndex = idx; });
+      io.to(`room:${roomId}`).emit('room:update', {
+        lobby: {
+          roomId: lobby.roomId,
+          roomCode: lobby.roomCode,
+          hostId: lobby.hostId,
+          maxPlayers: lobby.maxPlayers,
+          players: lobby.players
+        }
+      });
+      if (lobby.roomCode && lobby.roomCode !== roomId) {
+        io.to(`room:${lobby.roomCode}`).emit('room:update', {
+          lobby: {
+            roomId: lobby.roomId,
+            roomCode: lobby.roomCode,
+            hostId: lobby.hostId,
+            maxPlayers: lobby.maxPlayers,
+            players: lobby.players
+          }
+        });
+      }
     }
     socket.leave(`room:${roomId}`);
   });

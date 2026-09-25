@@ -40,7 +40,12 @@ export default function Landing() {
   const handlePlayOffline = () => {
     sound.playClick();
     triggerHaptic('light');
-    navigate('/offline');
+    if (user) {
+      navigate('/offline');
+    } else {
+      sessionStorage.setItem('budo_redirect_after_login', '/offline');
+      navigate('/login');
+    }
   };
 
   return (

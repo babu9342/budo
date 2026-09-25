@@ -11,7 +11,7 @@ export const api = axios.create({
 
 // Attach JWT token to all requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('budo_token');
+  const token = sessionStorage.getItem('budo_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,8 +22,8 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response && err.response.status === 401) {
-      // Token expired or invalid
-      // localStorage.removeItem('budo_token');
+      sessionStorage.removeItem('budo_token');
+      sessionStorage.removeItem('budo_user');
     }
     return Promise.reject(err);
   }

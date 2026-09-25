@@ -51,19 +51,19 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
-          {/* Protected Game Hub & Lobby Routes */}
+          {/* Protected Game Hub & Multiplayer Routes */}
           <Route path="/game" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/play-options" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
           <Route path="/join-room" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
           <Route path="/room/:code" element={<ProtectedRoute><RoomLobby /></ProtectedRoute>} />
-          <Route path="/join/:code" element={<JoinRedirect />} />
+          <Route path="/join/:code" element={<ProtectedRoute><JoinRedirect /></ProtectedRoute>} />
           <Route path="/game/:code" element={<ProtectedRoute><GamePlay /></ProtectedRoute>} />
           
-          {/* Offline Play & Utilities */}
-          <Route path="/offline" element={<OfflineGame />} />
+          {/* Protected Offline Play, Leaderboard & Account Utilities */}
+          <Route path="/offline" element={<ProtectedRoute><OfflineGame /></ProtectedRoute>} />
           <Route path="/result" element={<ProtectedRoute><Result /></ProtectedRoute>} />
-          <Route path="/rankings" element={<Leaderboard />} />
+          <Route path="/rankings" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
