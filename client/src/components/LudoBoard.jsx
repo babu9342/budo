@@ -29,7 +29,8 @@ export default function LudoBoard({
   const [animatingPositions, setAnimatingPositions] = useState({});
   const [hoppingToken, setHoppingToken] = useState(null);
   const [capturedTokens, setCapturedTokens] = useState({});
-  const prevPositionsRef = useRef(null);
+  const displayPositionsRef = useRef(null);
+  const activeAnimationKeyRef = useRef(null);
   const animIntervalRef = useRef(null);
   const rewindIntervalsRef = useRef({});
 
@@ -52,25 +53,25 @@ export default function LudoBoard({
       });
     });
 
-    if (!prevPositionsRef.current) {
-      prevPositionsRef.current = currentMap;
-      setAnimatingPositions(currentMap);
+    if (!displayPositionsRef.current) {
+      displayPositionsRef.current = { ...currentMap };
+      setAnimatingPositions({ ...currentMap });
       return;
     }
 
-    const prevMap = prevPositionsRef.current;
+    const prevMap = { ...displayPositionsRef.current };
 
     // Detect captures (token reset from track >= 0 to -1)
     const capturedList = [];
-    for (const key in prevMap) {
-      const oldStep = prevMap[key];
-      const newStep = currentMap[key] !== undefined ? currentMap[key] : -1;
+    for (const key in currentMap) {
+      const oldStep = prevMap[key] !== undefined ? prevMap[key] : -1;
+      const newStep = currentMap[key];
       if (oldStep >= 0 && newStep === -1) {
         capturedList.push({ key, oldStep });
       }
     }
 
-    // Detect if any token moved forward
+    // Detect forward token movement
     let forwardMove = null;
     for (const key in currentMap) {
       const oldStep = prevMap[key] !== undefined ? prevMap[key] : -1;
@@ -88,9 +89,6 @@ export default function LudoBoard({
       }
     }
 
-    // Update ref
-    prevPositionsRef.current = currentMap;
-
     // Helper: Runs reverse rewind along the path back to home yard (oldStep -> 0 -> -1)
     const startRewindAnimation = (caps) => {
       if (!caps || caps.length === 0) return;
@@ -106,11 +104,12 @@ export default function LudoBoard({
           clearInterval(rewindIntervalsRef.current[cap.key]);
         }
 
-        // Fast rewind along the exact path traversed (70ms per reverse cell step)
+        // Fast rewind along the exact path traversed (75ms per reverse cell step)
         rewindIntervalsRef.current[cap.key] = setInterval(() => {
           curStep -= 1;
           if (curStep >= 0) {
             sound.playMove();
+            displayPositionsRef.current[cap.key] = curStep;
             setAnimatingPositions((prev) => ({ ...prev, [cap.key]: curStep }));
           } else {
             // Reached home yard (-1)
@@ -121,6 +120,7 @@ export default function LudoBoard({
               delete next[cap.key];
               return next;
             });
+            displayPositionsRef.current[cap.key] = -1;
             setAnimatingPositions((prev) => ({ ...prev, [cap.key]: -1 }));
           }
         }, 75);
@@ -132,7 +132,9 @@ export default function LudoBoard({
 
       if (forwardMove.type === 'spawn') {
         sound.playMove();
+        triggerHaptic('light');
         setHoppingToken(forwardMove.key);
+        displayPositionsRef.current[forwardMove.key] = 0;
         setAnimatingPositions((prev) => {
           const next = { ...prev, [forwardMove.key]: 0 };
           capturedList.forEach((c) => {
@@ -147,16 +149,22 @@ export default function LudoBoard({
           if (capturedList.length > 0) {
             startRewindAnimation(capturedList);
           }
-        }, 300);
+        }, 320);
         return () => clearTimeout(t);
       } else if (forwardMove.type === 'step_by_step') {
-        let currentStep = forwardMove.from;
-        const targetStep = forwardMove.to;
         const key = forwardMove.key;
+        const targetStep = forwardMove.to;
+        let currentStep = forwardMove.from;
 
+        activeAnimationKeyRef.current = key;
+
+        // Step 1: Immediate initial step on click
+        currentStep += 1;
+        displayPositionsRef.current[key] = currentStep;
+        sound.playMove();
+        triggerHaptic('light');
         setHoppingToken(key);
 
-        // Keep captured token visible at its current board position while attacker approaches
         setAnimatingPositions((prev) => {
           const next = { ...prev, [key]: currentStep };
           capturedList.forEach((c) => {
@@ -165,25 +173,37 @@ export default function LudoBoard({
           return next;
         });
 
-        // Smooth cell-by-cell forward hop (200ms per cell)
-        animIntervalRef.current = setInterval(() => {
-          currentStep += 1;
-          sound.playMove();
-          setHoppingToken(key);
-          setAnimatingPositions((prev) => ({ ...prev, [key]: currentStep }));
+        if (currentStep < targetStep) {
+          // Sequential step-by-step box hopping (280ms per box)
+          animIntervalRef.current = setInterval(() => {
+            currentStep += 1;
+            displayPositionsRef.current[key] = currentStep;
+            sound.playMove();
+            triggerHaptic('light');
+            setHoppingToken(key);
+            setAnimatingPositions((prev) => ({ ...prev, [key]: currentStep }));
 
-          if (currentStep >= targetStep) {
-            clearInterval(animIntervalRef.current);
-            animIntervalRef.current = null;
-            setTimeout(() => {
-              setHoppingToken(null);
-              // Attacker has arrived: trigger reverse rewind along path for captured token
-              if (capturedList.length > 0) {
-                startRewindAnimation(capturedList);
-              }
-            }, 120);
-          }
-        }, 200);
+            if (currentStep >= targetStep) {
+              clearInterval(animIntervalRef.current);
+              animIntervalRef.current = null;
+              activeAnimationKeyRef.current = null;
+              setTimeout(() => {
+                setHoppingToken(null);
+                if (capturedList.length > 0) {
+                  startRewindAnimation(capturedList);
+                }
+              }, 140);
+            }
+          }, 280);
+        } else {
+          activeAnimationKeyRef.current = null;
+          setTimeout(() => {
+            setHoppingToken(null);
+            if (capturedList.length > 0) {
+              startRewindAnimation(capturedList);
+            }
+          }, 140);
+        }
 
         return () => {
           if (animIntervalRef.current) clearInterval(animIntervalRef.current);
@@ -192,8 +212,9 @@ export default function LudoBoard({
     } else {
       if (capturedList.length > 0) {
         startRewindAnimation(capturedList);
-      } else {
-        setAnimatingPositions(currentMap);
+      } else if (!activeAnimationKeyRef.current) {
+        displayPositionsRef.current = { ...currentMap };
+        setAnimatingPositions({ ...currentMap });
       }
     }
   }, [gameState]);
@@ -430,7 +451,7 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '3%', left: '3%' },
+      pos: { top: '0.6%', left: '0.6%' },
       anchor: 'translate(0%, 0%)'
     },
     {
@@ -439,7 +460,7 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '3%', left: '97%' },
+      pos: { top: '0.6%', left: '99.4%' },
       anchor: 'translate(-100%, 0%)'
     },
     {
@@ -448,7 +469,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '97%', left: '97%' },
+      pos: { top: '99.4%', left: '99.4%' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -457,7 +478,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '97%', left: '3%' },
+      pos: { top: '99.4%', left: '0.6%' },
       anchor: 'translate(0%, -100%)'
     }
   ];
