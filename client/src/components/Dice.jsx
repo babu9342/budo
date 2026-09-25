@@ -47,19 +47,19 @@ export default function Dice({
       sound.playDiceRoll();
       triggerHaptic('medium');
 
-      // Cycle numbers smoothly every 140ms during rolling for ~1.5s
+      // Cycle numbers rapidly every 85ms during rolling for ~1.2s
       const interval = setInterval(() => {
         setDisplayValue(Math.floor(Math.random() * 6) + 1);
-      }, 140);
+      }, 85);
 
       const timeout = setTimeout(() => {
         clearInterval(interval);
         setInternalRoll(false);
         if (value) setDisplayValue(value);
 
-        // Landing Pop & Glow Flash
+        // Smooth landing settle bounce
         setIsLandingPop(true);
-        setTimeout(() => setIsLandingPop(false), 500);
+        setTimeout(() => setIsLandingPop(false), 450);
 
         // Six: trigger fast upward jump + show coin entry indicator
         if (value === 6) {
@@ -73,7 +73,7 @@ export default function Dice({
           sixJumpTimeoutRef.current = setTimeout(() => setIsSixJump(false), 800);
           coinEntryTimeoutRef.current = setTimeout(() => setShowCoinEntry(false), 2200);
         }
-      }, 1500);
+      }, 1200);
 
       return () => {
         clearInterval(interval);
@@ -164,12 +164,24 @@ export default function Dice({
 
   const isSix = value === 6 && !internalRoll && !isRolling;
   const showTimer = timerSeconds !== null && !disabled && !internalRoll && !isRolling;
+  const isRollingActive = internalRoll || isRolling;
 
   return (
     <div className="flex flex-col items-center justify-center select-none relative z-30 pointer-events-auto">
+      {/* Ground Elevation Shadow Floor */}
+      <div 
+        className={`absolute -bottom-1 w-3/4 rounded-full transition-all duration-300 pointer-events-none ${
+          isRollingActive
+            ? 'h-3 bg-black/60 blur-md scale-125 translate-y-2'
+            : isLandingPop
+            ? 'h-2 bg-black/80 blur-xs scale-90 translate-y-0'
+            : 'h-1.5 bg-black/50 blur-[2px] scale-100'
+        }`}
+      />
+
       <button
         onClick={handleDiceClick}
-        disabled={disabled || isRolling || internalRoll}
+        disabled={disabled || isRollingActive}
         aria-label="Roll Dice"
         style={{
           boxShadow: isLandingPop
@@ -182,20 +194,20 @@ export default function Dice({
           inCenter
             ? 'w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl'
             : 'w-24 h-24 sm:w-28 sm:h-28 rounded-2xl'
-        } bg-[#121214] border-2 transition-all duration-200 flex items-center justify-center cursor-pointer active:scale-90 ${
+        } bg-[#121214] border-2 transition-all duration-150 flex items-center justify-center cursor-pointer active:scale-90 ${
           hasEntered ? 'animate-dice-drop' : ''
         } ${
-          isSixJump && !internalRoll && !isRolling ? 'animate-dice-six-jump' : ''
+          isSixJump && !isRollingActive ? 'animate-dice-six-jump' : ''
         } ${
           isLandingPop ? 'animate-dice-pop ring-2 sm:ring-4 ring-white' : ''
         } ${
           !disabled
             ? 'border-white ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105 shadow-xl'
             : 'border-slate-700/90 shadow-md'
-        } ${internalRoll || isRolling ? 'animate-dice-roll shadow-2xl ring-2 sm:ring-4 ring-amber-400 scale-105' : ''}`}
+        } ${isRollingActive ? 'animate-dice-roll ring-2 sm:ring-4 ring-amber-400' : ''}`}
       >
         {/* Dice Face Container */}
-        <div className="w-full h-full flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#1c1c20] via-[#121215] to-[#0a0a0c] shadow-inner relative border border-white/10">
+        <div className="w-full h-full overflow-hidden flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#1c1c20] via-[#121215] to-[#0a0a0c] shadow-inner relative border border-white/10 transition-transform duration-150">
           {renderDots(displayValue)}
         </div>
 
