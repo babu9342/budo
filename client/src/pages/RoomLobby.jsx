@@ -34,17 +34,20 @@ export default function RoomLobby() {
     api.get(`/rooms/${code}`)
       .then((res) => {
         if (res.data.success) {
-          dispatch(setRoom({ room: res.data.room, isHost: res.data.room.host_id === user?.id }));
+          const fetchedRoom = res.data.room;
+          console.log('[Lobby Room Loaded] Room Code:', code, 'max_players:', fetchedRoom.max_players, 'host_id:', fetchedRoom.host_id);
+          dispatch(setRoom({ room: fetchedRoom, isHost: fetchedRoom.host_id === user?.id }));
           
-          if (res.data.room.status === 'PLAYING') {
+          if (fetchedRoom.status === 'PLAYING') {
             navigate(`/game/${code}`);
             return;
           }
 
-          // Connect to socket room
+          // Connect to socket room with explicit maxPlayers
           socket.emit('room:join', {
-            roomId: res.data.room.id,
+            roomId: fetchedRoom.id,
             roomCode: code,
+            maxPlayers: Number(fetchedRoom.max_players) || 4,
             user: user || { id: -999, username: 'Guest' }
           });
         }
@@ -57,7 +60,12 @@ export default function RoomLobby() {
     // 2. Listen to lobby updates
     socket.on('room:update', (data) => {
       if (data.lobby) {
-        dispatch(updateLobby({ players: data.lobby.players, hostId: data.lobby.hostId }));
+        console.log('[Lobby Player List Generated] Mode/maxPlayers:', data.lobby.maxPlayers, 'Final Players:', data.lobby.players.map(p => ({ id: p.userId, username: p.username, isBot: !!p.isBot })));
+        dispatch(updateLobby({
+          players: data.lobby.players,
+          hostId: data.lobby.hostId,
+          maxPlayers: data.lobby.maxPlayers
+        }));
       }
     });
 

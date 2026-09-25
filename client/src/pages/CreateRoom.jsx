@@ -23,13 +23,16 @@ export default function CreateRoom() {
     setLoading(true);
     setError('');
 
+    console.log('[Lobby Creation] Selected mode/maxPlayers:', playerCount, 'isPrivate:', isPrivate);
+
     try {
       const res = await api.post('/rooms', {
-        maxPlayers: playerCount,
+        maxPlayers: Number(playerCount),
         isPrivate
       });
 
       if (res.data.success) {
+        console.log('[Lobby Creation Success] Created room with max_players:', res.data.room?.max_players, 'Room Code:', res.data.room?.code);
         dispatch(setRoom({ room: res.data.room, isHost: true }));
         navigate(`/room/${res.data.room.code}`);
       }

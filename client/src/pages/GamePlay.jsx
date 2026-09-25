@@ -256,7 +256,7 @@ export default function GamePlay() {
     return () => clearInterval(timerInterval);
   }, [gameState?.currentTurnIndex, gameState?.turnStartTime, gameState?.phase, validTokens, user?.id]);
 
-  // 10-Second Roll Timer — auto-rolls if my-turn player doesn't tap the dice
+  // 10-Second Roll Timer — starts automatically on turn change and auto-rolls if player doesn't tap dice
   useEffect(() => {
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
     autoRollInProgressRef.current = false;
@@ -266,12 +266,14 @@ export default function GamePlay() {
       return;
     }
 
-    const currentPlayer = gameState.players[gameState.currentTurnIndex];
-    const isMyTurnNow = currentPlayer?.userId === user?.id;
-    if (!isMyTurnNow) {
+    const currentPlayer = gameState.players?.[gameState.currentTurnIndex];
+    if (!currentPlayer) {
       setRollTimerSeconds(10);
       return;
     }
+
+    const isMyTurnNow = currentPlayer.userId === user?.id;
+    console.log(`Timer started for player ${currentPlayer.username}`);
 
     const TOTAL = 10;
     setRollTimerSeconds(TOTAL);
@@ -285,10 +287,11 @@ export default function GamePlay() {
       if (remaining <= 0 && !autoRollInProgressRef.current) {
         clearInterval(rollTimerIntervalRef.current);
         autoRollInProgressRef.current = true;
-        // Auto-emit roll via socket (same as manual roll)
-        if (!diceRolling) {
+        console.log(`Timer expired - auto rolling for player ${currentPlayer.username}`);
+        // Auto-emit roll via socket for my turn (same as manual roll)
+        if (isMyTurnNow && !diceRolling) {
           dispatch(setDiceRolling(true));
-          socket.emit('dice:roll', { roomId: gameState.roomId || code });
+          socket.emit('dice:roll', { roomId: gameState.roomId || code, user: { id: user?.id, username: user?.username } });
         }
       }
     }, 500);
@@ -551,7 +554,7 @@ export default function GamePlay() {
                 disabled: networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll,
                 onRoll: handleRollDice,
                 playerColor: currentPlayer?.color?.hex,
-                timerSeconds: isMyTurn && isWaitingRoll ? rollTimerSeconds : null,
+                timerSeconds: isWaitingRoll ? rollTimerSeconds : null,
                 isUrgent: isRollUrgent
               }}
             />

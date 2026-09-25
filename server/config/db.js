@@ -121,9 +121,14 @@ function executeInMemorySql(text, params = []) {
     }
 
     if (lowerSql.includes('from rooms')) {
+      if (lowerSql.includes('where id = $1 or code = $1') || lowerSql.includes('where code = $1 or id = $1') || lowerSql.includes('id = $1 or code = $1')) {
+        const key = String(params[0]);
+        const room = memoryStore.rooms.find(r => String(r.id) === key || String(r.code) === key);
+        return { rows: room ? [ { ...room } ] : [], rowCount: room ? 1 : 0 };
+      }
       if (lowerSql.includes('where code = $1')) {
-        const code = params[0];
-        const room = memoryStore.rooms.find(r => r.code === code);
+        const code = String(params[0]);
+        const room = memoryStore.rooms.find(r => String(r.code) === code);
         return { rows: room ? [ { ...room } ] : [], rowCount: room ? 1 : 0 };
       }
       if (lowerSql.includes('where id = $1')) {

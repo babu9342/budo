@@ -22,7 +22,7 @@ function saveLobby(lobby) {
 
 export function setupRoomSocket(io, socket) {
   // Join Room Lobby
-  socket.on('room:join', async ({ roomId, roomCode, user }) => {
+  socket.on('room:join', async ({ roomId, roomCode, maxPlayers: clientMaxPlayers, user }) => {
     try {
       const primaryKey = String(roomId || roomCode);
       socket.join(`room:${primaryKey}`);
@@ -40,11 +40,11 @@ export function setupRoomSocket(io, socket) {
 
       let lobby = findLobby(roomId) || findLobby(roomCode);
       if (!lobby) {
-        let maxPlayers = 4;
+        let maxPlayers = Number(clientMaxPlayers) || 4;
         try {
           const roomRes = await query('SELECT max_players, code, host_id FROM rooms WHERE id = $1 OR code = $1', [primaryKey]);
           if (roomRes.rows.length > 0) {
-            maxPlayers = Number(roomRes.rows[0].max_players) || 4;
+            maxPlayers = Number(roomRes.rows[0].max_players) || maxPlayers;
             if (!roomCode && roomRes.rows[0].code) {
               roomCode = roomRes.rows[0].code;
             }
@@ -57,10 +57,12 @@ export function setupRoomSocket(io, socket) {
           roomId: String(roomId || primaryKey),
           roomCode: String(roomCode || primaryKey),
           hostId: user?.id,
-          maxPlayers,
+          maxPlayers: Number(maxPlayers) || 4,
           players: []
         };
         saveLobby(lobby);
+      } else if (clientMaxPlayers && (!lobby.maxPlayers || lobby.maxPlayers === 4)) {
+        lobby.maxPlayers = Number(clientMaxPlayers);
       }
 
       if (user && user.id) {
@@ -90,6 +92,7 @@ export function setupRoomSocket(io, socket) {
       }
 
       saveLobby(lobby);
+      console.log(`[Lobby Initialized] Room: ${lobby.roomCode || lobby.roomId} | Mode/maxPlayers: ${lobby.maxPlayers} | Players (${lobby.players.length}/${lobby.maxPlayers}):`, lobby.players.map(p => ({ id: p.userId, username: p.username, isBot: !!p.isBot })));
 
       // If an active game already exists for this room, notify joining player
       const activeGame = gameManager.getGame(roomId || roomCode);
@@ -253,9 +256,8 @@ export function setupRoomSocket(io, socket) {
         return;
       }
 
-      // If fewer players than maxPlayers, fill the remaining slots with bots automatically
-      const targetCapacity = lobby.maxPlayers || 4;
-      while (lobby.players.length < targetCapacity) {
+      // If solo player starts alone without opponents, add 1 bot to enable playing
+      if (lobby.players.length === 1 && (lobby.maxPlayers || 4) >= 2) {
         const botIndex = lobby.players.length + 1;
         lobby.players.push({
           userId: -1000 - botIndex,
@@ -271,11 +273,12 @@ export function setupRoomSocket(io, socket) {
       }
 
       saveLobby(lobby);
+      console.log(`[Lobby Game Start] Room: ${lobby.roomCode || lobby.roomId} | Mode/maxPlayers: ${lobby.maxPlayers} | Final Players (${lobby.players.length}):`, lobby.players.map(p => ({ id: p.userId, name: p.username, isBot: !!p.isBot, index: p.playerIndex })));
 
       // Initialize Game Engine State with 30-min TTL lifecycle
       const primaryGameId = lobby.roomId || lobby.roomCode || String(roomId);
       const codeKey = lobby.roomCode || String(roomCode || roomId);
-      const game = gameManager.createGame(primaryGameId, lobby.players, lobby.players.length, codeKey);
+      const game = gameManager.createGame(primaryGameId, lobby.players, lobby.maxPlayers || lobby.players.length, codeKey);
       const serialized = gameManager.serializeGame(game);
 
       const startPayload = {

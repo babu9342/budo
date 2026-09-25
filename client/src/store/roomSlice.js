@@ -20,6 +20,9 @@ const roomSlice = createSlice({
       if (action.payload.hostId && state.currentRoom) {
         state.currentRoom.host_id = action.payload.hostId;
       }
+      if (action.payload.maxPlayers && state.currentRoom) {
+        state.currentRoom.max_players = action.payload.maxPlayers;
+      }
     },
     clearRoom: (state) => {
       state.currentRoom = null;

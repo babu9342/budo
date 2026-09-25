@@ -109,6 +109,8 @@ export default function OfflineGame() {
       });
     }
 
+    console.log('[Offline Lobby Creation] Selected mode:', gameMode, 'Player count:', playerCount, 'Configs:', configs.map(c => ({ id: c.userId, username: c.username, isBot: c.isBot })));
+
     const eng = new OfflineLudoEngine(configs);
     setEngine(eng);
     setGameState(eng.getState());
@@ -207,7 +209,7 @@ export default function OfflineGame() {
     handleSelectTokenDirect(gameState, engine, tokenId);
   };
 
-  // 10-Second Roll Timer — auto-rolls if human player doesn't tap the dice
+  // 10-Second Roll Timer — starts automatically on turn change and auto-rolls if human player doesn't tap dice
   useEffect(() => {
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
     autoRollInProgressRef.current = false;
@@ -217,11 +219,13 @@ export default function OfflineGame() {
       return;
     }
 
-    const currentPlayer = gameState.players[gameState.currentTurnIndex];
+    const currentPlayer = gameState.players?.[gameState.currentTurnIndex];
     if (!currentPlayer || currentPlayer.isBot) {
       setRollTimerSeconds(10);
       return;
     }
+
+    console.log(`Timer started for player ${currentPlayer.username}`);
 
     const TOTAL = 10;
     setRollTimerSeconds(TOTAL);
@@ -235,6 +239,7 @@ export default function OfflineGame() {
       if (remaining <= 0 && !autoRollInProgressRef.current) {
         clearInterval(rollTimerIntervalRef.current);
         autoRollInProgressRef.current = true;
+        console.log(`Timer expired - auto rolling for player ${currentPlayer.username}`);
         handleRollDice(true); // auto-roll with auto-move
       }
     }, 500);
@@ -603,7 +608,7 @@ export default function OfflineGame() {
                 disabled: !isHumanTurn || !isWaitingRoll,
                 onRoll: handleRollDice,
                 playerColor: currentPlayer?.color?.hex,
-                timerSeconds: isHumanTurn && isWaitingRoll ? rollTimerSeconds : null,
+                timerSeconds: isWaitingRoll ? rollTimerSeconds : null,
                 isUrgent: isRollUrgent
               }}
             />
