@@ -5,7 +5,8 @@ import { toggleSound, toggleMusic, toggleVibration } from '../store/settingsSlic
 import { logout } from '../store/authSlice';
 import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
-import { Volume2, VolumeX, Music, Smartphone, LogOut, HelpCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
+import BackButton from '../components/BackButton';
+import { Volume2, VolumeX, Music, Smartphone, LogOut, HelpCircle, ShieldCheck } from 'lucide-react';
 import { sound } from '../utils/soundEngine';
 
 export default function Settings() {
@@ -15,34 +16,19 @@ export default function Settings() {
   const [showRules, setShowRules] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleBack = () => {
-    sound.playClick();
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate('/home');
-    }
-  };
-
   const handleLogout = () => {
     sound.playClick();
     dispatch(logout());
-    navigate('/login');
+    navigate('/');
   };
 
   return (
-    <div className="min-h-screen bg-budo-bg pb-20 flex flex-col items-center">
-      <Navbar />
+    <div className="h-[100dvh] max-h-[100dvh] overflow-y-auto bg-budo-bg pb-28 flex flex-col items-center">
+      <Navbar showBack={false} />
 
       <main className="w-full max-w-md md:max-w-lg px-4 py-4 space-y-4">
         <div className="flex items-center gap-3 px-1">
-          <button
-            onClick={handleBack}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-90 transition-transform"
-            title="Go Back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+          <BackButton />
           <h2 className="text-xl font-black text-white">Game Settings</h2>
         </div>
 

@@ -54,7 +54,8 @@ export default function App() {
           {/* Protected Game Hub & Multiplayer Routes */}
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/game" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/play-options" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/play" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
+          <Route path="/play-options" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
           <Route path="/join-room" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
           <Route path="/room/:code" element={<ProtectedRoute><RoomLobby /></ProtectedRoute>} />

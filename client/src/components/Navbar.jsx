@@ -1,22 +1,30 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Bell, Trophy, Volume2, VolumeX } from 'lucide-react';
 import BudoLogo from './BudoLogo';
+import BackButton from './BackButton';
 import { sound } from '../utils/soundEngine';
 
-export default function Navbar() {
+export default function Navbar({ showBack = true }) {
   const { user } = useSelector((state) => state.auth);
-  const { sound: isSoundEnabled } = useSelector((state) => state.settings);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isHomeOrRoot = location.pathname === '/' || location.pathname === '/home';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between">
-      <div 
-        onClick={() => { sound.playClick(); navigate(user ? '/home' : '/'); }}
-        className="cursor-pointer flex items-center gap-2 active:scale-95 transition-transform"
-      >
-        <BudoLogo size="sm" />
+      <div className="flex items-center gap-2">
+        {!isHomeOrRoot && showBack && (
+          <BackButton className="p-1.5 rounded-xl border-slate-700/60" />
+        )}
+        <div 
+          onClick={() => { sound.playClick(); navigate(user ? '/home' : '/'); }}
+          className="cursor-pointer flex items-center gap-2 active:scale-95 transition-transform"
+        >
+          <BudoLogo size="sm" />
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

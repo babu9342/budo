@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { resetGame } from '../store/gameSlice';
+import BackButton from '../components/BackButton';
 import { Trophy, Crown, ArrowRight, RotateCcw, Award } from 'lucide-react';
 import { sound } from '../utils/soundEngine';
 import confetti from 'canvas-confetti';
@@ -37,6 +38,10 @@ export default function Result() {
 
   return (
     <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm flex items-center justify-start mb-2">
+        <BackButton fallback="/home" label="Back to Home" />
+      </div>
+
       <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-6 text-center">
         {/* Crown & Banner */}
         <div className="flex flex-col items-center space-y-2.5">

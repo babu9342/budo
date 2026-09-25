@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import BudoLogo from '../components/BudoLogo';
+import BackButton from '../components/BackButton';
 import { sound } from '../utils/soundEngine';
 import { api } from '../services/api';
 
@@ -26,6 +27,10 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm flex items-center justify-start mb-2">
+        <BackButton fallback="/login" label="Back" />
+      </div>
+
       <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6">
         <BudoLogo size="md" subtitle={false} />
 
