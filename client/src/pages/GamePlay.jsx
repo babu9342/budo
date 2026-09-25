@@ -308,13 +308,27 @@ export default function GamePlay() {
 
     if (!gameState || gameState.phase !== 'WAITING_MOVE') {
       setMoveTimerActive(false);
+      setMoveTimerSeconds(6);
       return;
     }
 
-    const currentPlayer = gameState.players[gameState.currentTurnIndex];
-    const isMyTurn = currentPlayer?.userId === user?.id;
+    const currentPlayer = gameState.players?.[gameState.currentTurnIndex];
+    if (!currentPlayer) {
+      setMoveTimerActive(false);
+      return;
+    }
 
-    if (!isMyTurn || validTokens.length === 0) {
+    const isMyTurn = Boolean(
+      (currentPlayer.userId && user?.id && String(currentPlayer.userId) === String(user.id)) ||
+      (currentPlayer.username && user?.username && currentPlayer.username === user.username) ||
+      (user?._id && String(currentPlayer.userId) === String(user._id))
+    );
+
+    const moves = (gameState.validMoves && gameState.validMoves.length > 0)
+      ? gameState.validMoves
+      : (validTokens || []);
+
+    if (moves.length === 0) {
       setMoveTimerActive(false);
       return;
     }
@@ -334,25 +348,20 @@ export default function GamePlay() {
         setMoveTimerActive(false);
 
         // Auto-pick coin with priority: capture opponent > reach home > furthest on path > first available
-        const bestToken = getBestAutoMove(gameState, currentPlayer.playerIndex, gameState.diceValue);
-        if (bestToken !== null) {
-          handleSelectToken(bestToken);
+        if (isMyTurn) {
+          const bestToken = getBestAutoMove(gameState, currentPlayer.playerIndex, gameState.diceValue);
+          if (bestToken !== null) {
+            handleSelectToken(bestToken);
+          }
         }
       }
     }, 200);
-
-    // If single valid token, preview and auto-move after 1.8s
-    if (validTokens.length === 1) {
-      moveTimerAutoMoveRef.current = setTimeout(() => {
-        handleSelectToken(validTokens[0]);
-      }, 1800);
-    }
 
     return () => {
       if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
       if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
     };
-  }, [gameState?.phase, gameState?.currentTurnIndex, validTokens, user?.id, gameState?.diceValue]);
+  }, [gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue, gameState?.validMoves?.length, user]);
 
   if (!gameState) {
     return (
@@ -665,8 +674,8 @@ export default function GamePlay() {
                   key={t.id}
                   onClick={() => handleSelectTheme(t.id)}
                   className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all active:scale-95 ${themeName === t.id
-                    ? 'bg-purple-600/30 border-purple-400 text-white shadow-lg'
-                    : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                      ? 'bg-purple-600/30 border-purple-400 text-white shadow-lg'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
                     }`}
                 >
                   <div className="flex items-center gap-2.5">

@@ -208,25 +208,25 @@ html, body {
 
 /* Base sizing variables for responsive cube dimensions */
 .dice-cube-incenter {
-  --dice-size: 56px;
-  --dice-half: 28px;
-  width: 56px;
-  height: 56px;
+  --dice-size: 44px;
+  --dice-half: 22px;
+  width: 44px;
+  height: 44px;
 }
 @media (min-width: 640px) {
   .dice-cube-incenter {
-    --dice-size: 64px;
-    --dice-half: 32px;
-    width: 64px;
-    height: 64px;
+    --dice-size: 50px;
+    --dice-half: 25px;
+    width: 50px;
+    height: 50px;
   }
 }
 @media (min-width: 768px) {
   .dice-cube-incenter {
-    --dice-size: 76px;
-    --dice-half: 38px;
-    width: 76px;
-    height: 76px;
+    --dice-size: 56px;
+    --dice-half: 28px;
+    width: 56px;
+    height: 56px;
   }
 }
 

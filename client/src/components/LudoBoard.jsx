@@ -271,22 +271,22 @@ export default function LudoBoard({
             <rect x="8" y="8" width="544" height="544" rx="14" ry="14" fill="none" stroke="#A0522D" strokeWidth="3" />
             <rect x="14" y="14" width="532" height="532" rx="10" ry="10" fill="none" stroke="#D4A017" strokeWidth="1.5" />
             {/* Corner lotus ornaments */}
-            {[[28, 28], [532, 28], [28, 532], [532, 532]].map(([cx, cy], i) => (
+            {[[28,28],[532,28],[28,532],[532,532]].map(([cx,cy], i) => (
               <g key={i} transform={`translate(${cx},${cy})`}>
                 <circle r="12" fill="#8B4513" opacity="0.9" />
                 <circle r="8" fill="#D4A017" opacity="0.9" />
                 <circle r="4" fill="#FAF0DC" opacity="1" />
-                {[0, 60, 120, 180, 240, 300].map((angle, j) => (
-                  <ellipse key={j} cx={Math.cos(angle * Math.PI / 180) * 9} cy={Math.sin(angle * Math.PI / 180) * 9}
+                {[0,60,120,180,240,300].map((angle, j) => (
+                  <ellipse key={j} cx={Math.cos(angle*Math.PI/180)*9} cy={Math.sin(angle*Math.PI/180)*9}
                     rx="4" ry="2.5" fill="#C0392B" opacity="0.8"
-                    transform={`rotate(${angle},${Math.cos(angle * Math.PI / 180) * 9},${Math.sin(angle * Math.PI / 180) * 9})`} />
+                    transform={`rotate(${angle},${Math.cos(angle*Math.PI/180)*9},${Math.sin(angle*Math.PI/180)*9})`} />
                 ))}
               </g>
             ))}
             {/* Top/Bottom vine dividers */}
             {[0, 1].map(side => (
               <g key={side} transform={side === 1 ? 'translate(0,560) scale(1,-1)' : ''}>
-                {[80, 160, 240, 320, 400, 480].map((x, i) => (
+                {[80,160,240,320,400,480].map((x, i) => (
                   <g key={i}>
                     <ellipse cx={x} cy="10" rx="12" ry="5" fill="#8B4513" opacity="0.5" />
                     <circle cx={x} cy="10" r="3" fill="#D4A017" opacity="0.7" />
@@ -297,7 +297,7 @@ export default function LudoBoard({
             {/* Left/Right vine dividers */}
             {[0, 1].map(side => (
               <g key={side} transform={side === 1 ? 'translate(560,0) scale(-1,1)' : ''}>
-                {[80, 160, 240, 320, 400, 480].map((y, i) => (
+                {[80,160,240,320,400,480].map((y, i) => (
                   <g key={i}>
                     <ellipse cx="10" cy={y} rx="5" ry="12" fill="#8B4513" opacity="0.5" />
                     <circle cx="10" cy={y} r="3" fill="#D4A017" opacity="0.7" />
@@ -328,7 +328,7 @@ export default function LudoBoard({
           </div>
         </div>
       ) : (
-        <div
+        <div 
           className={`aspect-square ${currentTheme.boardBg} rounded-3xl p-2.5 sm:p-3.5 border-2 ${currentTheme.boardBorder} shadow-2xl relative backdrop-blur-xl transition-colors duration-500`}
           style={{
             width: 'min(calc(100vw - 24px), calc(100dvh - 140px), 520px)',
@@ -443,7 +443,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored in the 4 corners of the board container)
+  // 4 Constant Corner Boxes Configuration (Dynamically anchored to the outermost corner of each player's home base)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -451,8 +451,8 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '3%', left: '3%' },
-      anchor: 'translate(0%, 0%)'
+      pos: { top: 'clamp(6px, 1.5%, 12px)', left: 'clamp(6px, 1.5%, 12px)' },
+      anchor: 'translate(0, 0)'
     },
     {
       id: 'green',
@@ -460,8 +460,8 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '3%', left: '97%' },
-      anchor: 'translate(-100%, 0%)'
+      pos: { top: 'clamp(6px, 1.5%, 12px)', left: 'calc(100% - clamp(6px, 1.5%, 12px))' },
+      anchor: 'translate(-100%, 0)'
     },
     {
       id: 'yellow',
@@ -469,7 +469,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '97%', left: '97%' },
+      pos: { top: 'calc(100% - clamp(6px, 1.5%, 12px))', left: 'calc(100% - clamp(6px, 1.5%, 12px))' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -478,8 +478,8 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '97%', left: '3%' },
-      anchor: 'translate(0%, -100%)'
+      pos: { top: 'calc(100% - clamp(6px, 1.5%, 12px))', left: 'clamp(6px, 1.5%, 12px)' },
+      anchor: 'translate(0, -100%)'
     }
   ];
 
@@ -503,8 +503,9 @@ function Classic4PlayerBoard({
       }}
     >
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${gameState.currentTurnIndex === redPlayer?.playerIndex ? 'animate-yard-pulse' : ''
-        }`}
+      <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === redPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
         style={{
           borderColor: redPlayer?.color?.hex || '#EF4444',
           '--yard-glow-color': redPlayer?.color?.hex || '#EF4444',
@@ -535,8 +536,9 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${gameState.currentTurnIndex === greenPlayer?.playerIndex ? 'animate-yard-pulse' : ''
-        }`}
+      <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === greenPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
         style={{
           borderColor: greenPlayer?.color?.hex || '#10B981',
           '--yard-glow-color': greenPlayer?.color?.hex || '#10B981',
@@ -627,10 +629,11 @@ function Classic4PlayerBoard({
         return (
           <div
             key={box.id}
-            className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${isCurrentTurnBox
-                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
-              }`}
+            className={`absolute z-10 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
+              isCurrentTurnBox
+                ? 'w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-slate-950/40 border border-slate-800/60 opacity-30'
+            }`}
             style={{
               top: box.pos.top,
               left: box.pos.left,
@@ -644,10 +647,10 @@ function Classic4PlayerBoard({
             {/* Empty Box Placeholder when dice is in another corner */}
             {!isCurrentTurnBox && (
               <div
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded border border-dashed flex items-center justify-center opacity-30"
                 style={{ borderColor: box.colorHex }}
               >
-                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
+                <span className="text-[9px]" style={{ color: box.colorHex }}>🎲</span>
               </div>
             )}
           </div>
@@ -656,9 +659,10 @@ function Classic4PlayerBoard({
 
       {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies between the 4 fixed boxes (450ms) */}
       {diceProps && (
-        <div
-          className={`absolute z-20 flex items-center justify-center ${diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
-            }`}
+        <div 
+          className={`absolute z-20 flex items-center justify-center ${
+            diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
+          }`}
           style={{
             top: activeBoxPos.top,
             left: activeBoxPos.left,
@@ -685,8 +689,9 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
-      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${gameState.currentTurnIndex === bluePlayer?.playerIndex ? 'animate-yard-pulse' : ''
-        }`}
+      <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === bluePlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
         style={{
           borderColor: bluePlayer?.color?.hex || '#3B82F6',
           '--yard-glow-color': bluePlayer?.color?.hex || '#3B82F6',
@@ -717,8 +722,9 @@ function Classic4PlayerBoard({
       </div>
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
-      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${gameState.currentTurnIndex === yellowPlayer?.playerIndex ? 'animate-yard-pulse' : ''
-        }`}
+      <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
+        gameState.currentTurnIndex === yellowPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+      }`}
         style={{
           borderColor: yellowPlayer?.color?.hex || '#EAB308',
           '--yard-glow-color': yellowPlayer?.color?.hex || '#EAB308',
@@ -758,7 +764,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           : { backgroundColor: 'rgba(2,6,23,0.4)', border: '1px solid rgba(255,255,255,0.1)' }
         }>
         <span
-          className={`text-[10px] uppercase font-bold ${theme.isPachisi ? 'text-[#8B4513]' : 'text-slate-400'}`}
+          className={`text-[10px] uppercase font-bold ${ theme.isPachisi ? 'text-[#8B4513]' : 'text-slate-400' }`}
           style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
         >
           Vacant
@@ -808,7 +814,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
           style={{
             backgroundColor: '#FAF0DC',
             border: `3px solid ${colorHex}`,
-            boxShadow: isCurrentTurn
+            boxShadow: isCurrentTurn 
               ? `0 0 16px ${colorHex}, inset 0 0 10px rgba(212,160,23,0.3)`
               : `0 0 12px ${colorHex}88, inset 0 0 8px rgba(212,160,23,0.15)`,
             borderRadius: '6px'
@@ -915,8 +921,9 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
 
       {/* Inset Base Square with Diamond Pips & 2x2 Token Bases */}
       <div
-        className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
-          }`}
+        className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
+          isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
+        }`}
         style={isCurrentTurn ? {
           boxShadow: `0 0 14px ${colorHex}88, inset 0 0 10px ${colorHex}33`
         } : undefined}
@@ -1165,15 +1172,16 @@ function RadialMultiPlayerBoard({
         return (
           <div
             key={pIdx}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-all ${isCurrentTurn ? 'animate-yard-pulse z-30' : ''
-              }`}
+            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-all ${
+              isCurrentTurn ? 'animate-yard-pulse z-30' : ''
+            }`}
             style={{
               left: `${x}%`,
               top: `${y}%`,
               '--yard-glow-color': player.color.hex
             }}
           >
-            <div
+            <div 
               className="p-1.5 md:p-2 rounded-2xl bg-slate-950/90 border-2 shadow-xl flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20"
               style={{
                 borderColor: player.color.hex,
