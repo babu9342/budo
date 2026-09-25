@@ -101,9 +101,18 @@ export default function Login() {
         <BudoLogo size="lg" subtitle={true} />
 
         {error && (
-          <div className="bg-red-500/15 border border-red-500/40 text-red-400 p-3 rounded-xl text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
+          <div className="bg-red-500/15 border border-red-500/40 text-red-400 p-3 rounded-xl text-xs flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogin}
+              className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold rounded-lg border border-red-500/30 text-[11px] whitespace-nowrap active:scale-95 transition-all flex-shrink-0"
+            >
+              🔄 Retry
+            </button>
           </div>
         )}
 

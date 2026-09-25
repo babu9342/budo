@@ -260,11 +260,11 @@ class GameManager {
     if (game.consecutiveSixes === 3) {
       game.consecutiveSixes = 0;
       game.phase = 'WAITING_ROLL';
-      game.diceValue = null;
-      this.nextTurn(game);
       return {
         diceValue,
         consecutiveSixesSkipped: true,
+        autoPass: true,
+        requiresTurnSwitch: true,
         nextTurnIndex: game.currentTurnIndex,
         gameState: this.serializeGame(game)
       };
@@ -283,11 +283,11 @@ class GameManager {
     if (validTokens.length === 0) {
       // No valid moves - pass turn
       game.phase = 'WAITING_ROLL';
-      this.nextTurn(game);
       return {
         diceValue,
         validTokens: [],
         autoPass: true,
+        requiresTurnSwitch: true,
         nextTurnIndex: game.currentTurnIndex,
         gameState: this.serializeGame(game)
       };
@@ -299,6 +299,7 @@ class GameManager {
       diceValue,
       validTokens,
       autoPass: false,
+      requiresTurnSwitch: false,
       nextTurnIndex: game.currentTurnIndex,
       gameState: this.serializeGame(game)
     };
@@ -410,19 +411,34 @@ class GameManager {
       game.phase = 'WAITING_ROLL';
       game.diceValue = null;
       game.validMoves = [];
+      return {
+        gameOver: false,
+        outcome,
+        bonusTurn: true,
+        requiresTurnSwitch: false,
+        nextTurnIndex: game.currentTurnIndex,
+        gameState: this.serializeGame(game)
+      };
     } else {
       game.phase = 'WAITING_ROLL';
       game.diceValue = null;
       game.validMoves = [];
-      this.nextTurn(game);
+      return {
+        gameOver: false,
+        outcome,
+        bonusTurn: false,
+        requiresTurnSwitch: true,
+        nextTurnIndex: game.currentTurnIndex,
+        gameState: this.serializeGame(game)
+      };
     }
+  }
 
-    return {
-      gameOver: false,
-      outcome,
-      nextTurnIndex: game.currentTurnIndex,
-      gameState: this.serializeGame(game)
-    };
+  advanceTurn(roomId) {
+    const game = this.getGame(roomId);
+    if (!game || game.phase === 'GAME_OVER') return null;
+    this.nextTurn(game);
+    return this.serializeGame(game);
   }
 
   nextTurn(game) {

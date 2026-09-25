@@ -70,6 +70,8 @@ export default function PlayerCard({
           <img
             src={player.avatarUrl || '/avatars/default.png'}
             alt={player.username}
+            loading="lazy"
+            decoding="async"
             className={`rounded-full object-cover bg-slate-800 border-2 ${
               compact ? 'w-8 h-8' : 'w-10 h-10'
             }`}

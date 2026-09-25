@@ -237,6 +237,8 @@ export default function RoomLobby() {
                     <img
                       src={player.avatarUrl || '/avatars/default.png'}
                       alt={player.username}
+                      loading="lazy"
+                      decoding="async"
                       className="w-10 h-10 rounded-xl border border-slate-700 object-cover bg-slate-900 flex-shrink-0"
                     />
                     <div className="min-w-0">

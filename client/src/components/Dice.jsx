@@ -47,10 +47,10 @@ export default function Dice({
       sound.playDiceRoll();
       triggerHaptic('medium');
 
-      // Cycle numbers rapidly every 85ms during rolling for ~1.2s
+      // Cycle numbers every 160ms during rolling for 1.6s total (1.5–2s duration)
       const interval = setInterval(() => {
         setDisplayValue(Math.floor(Math.random() * 6) + 1);
-      }, 85);
+      }, 160);
 
       const timeout = setTimeout(() => {
         clearInterval(interval);
@@ -73,7 +73,7 @@ export default function Dice({
           sixJumpTimeoutRef.current = setTimeout(() => setIsSixJump(false), 800);
           coinEntryTimeoutRef.current = setTimeout(() => setShowCoinEntry(false), 2200);
         }
-      }, 1200);
+      }, 1600);
 
       return () => {
         clearInterval(interval);
@@ -167,7 +167,7 @@ export default function Dice({
   const isRollingActive = internalRoll || isRolling;
 
   return (
-    <div className="flex flex-col items-center justify-center select-none relative z-30 pointer-events-auto">
+    <div className="dice-container flex flex-col items-center justify-center select-none relative z-30 pointer-events-auto">
       {/* Ground Elevation Shadow Floor */}
       <div 
         className={`absolute -bottom-1 w-3/4 rounded-full transition-all duration-300 pointer-events-none ${
@@ -183,11 +183,11 @@ export default function Dice({
         onClick={handleDiceClick}
         disabled={disabled || isRollingActive}
         aria-label="Roll Dice"
-        className={`relative ${
+        className={`dice ${isRollingActive ? 'rolling' : ''} relative ${
           inCenter
             ? 'w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl'
             : 'w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl'
-        } dice-3d-cube border-2 transition-all duration-150 flex items-center justify-center cursor-pointer active:scale-90 ${
+        } dice-3d-cube border-2 flex items-center justify-center cursor-pointer active:scale-90 ${
           hasEntered ? 'animate-dice-drop' : ''
         } ${
           isSixJump && !isRollingActive ? 'animate-dice-six-jump' : ''
@@ -197,7 +197,7 @@ export default function Dice({
           !disabled
             ? 'ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105'
             : 'opacity-90'
-        } ${isRollingActive ? 'animate-dice-roll ring-2 sm:ring-4 ring-amber-400' : ''}`}
+        }`}
       >
         {/* 3D Dice Face Bevel & Surface Inset */}
         <div className="w-full h-full overflow-hidden flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#262833]/90 via-[#181920]/95 to-[#0d0e12] shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.85)] relative border border-white/10 transition-transform duration-150">

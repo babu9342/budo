@@ -49,6 +49,8 @@ export default function Leaderboard() {
               <img
                 src={rankings[1]?.avatar_url || '/avatars/default.png'}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="w-10 h-10 rounded-full border-2 border-slate-300 object-cover"
               />
               <span className="text-xs font-bold text-white mt-1 truncate max-w-[70px]">
@@ -68,6 +70,8 @@ export default function Leaderboard() {
               <img
                 src={rankings[0]?.avatar_url || '/avatars/default.png'}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="w-12 h-12 rounded-full border-2 border-amber-400 object-cover"
               />
               <span className="text-xs font-black text-white mt-1 truncate max-w-[80px]">
@@ -86,6 +90,8 @@ export default function Leaderboard() {
               <img
                 src={rankings[2]?.avatar_url || '/avatars/default.png'}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="w-10 h-10 rounded-full border-2 border-amber-700 object-cover"
               />
               <span className="text-xs font-bold text-white mt-1 truncate max-w-[70px]">
@@ -119,6 +125,8 @@ export default function Leaderboard() {
                   <img
                     src={user.avatar_url || '/avatars/default.png'}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="w-9 h-9 rounded-xl border border-slate-700 object-cover bg-slate-900"
                   />
                   <div>

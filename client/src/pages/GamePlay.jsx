@@ -35,6 +35,7 @@ export default function GamePlay() {
   const [floatingStickers, setFloatingStickers] = useState([]);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
   const [winBanner, setWinBanner] = useState(null);
+  const [networkStatus, setNetworkStatus] = useState(socketService.isConnected() ? 'connected' : 'connecting');
 
   // Move Timer Feature (6-second countdown for move selection)
   const [moveTimerSeconds, setMoveTimerSeconds] = useState(6);
@@ -98,6 +99,21 @@ export default function GamePlay() {
 
   useEffect(() => {
     if (!socket) return;
+
+    const unsubscribeStatus = socketService.onStatusChange((status) => {
+      setNetworkStatus(status);
+    });
+
+    const unsubscribeReconnect = socketService.onReconnect(() => {
+      setNetworkStatus('connected');
+      // Resynchronize room session and game state immediately on reconnection
+      socket.emit('room:join', {
+        roomCode: code,
+        roomId: code,
+        user: user || { id: -999, username: 'Player' }
+      });
+      socket.emit('game:getState', { roomId: code });
+    });
 
     // Request current game state and ensure socket is in the room channel
     if (!gameState) {
@@ -197,6 +213,8 @@ export default function GamePlay() {
     });
 
     return () => {
+      unsubscribeStatus();
+      unsubscribeReconnect();
       socket.off('game:state', handleGameState);
       socket.off('dice:result');
       socket.off('token:update');
@@ -376,7 +394,7 @@ export default function GamePlay() {
   const isRollUrgent = rollTimerSeconds <= 3;
 
   const handleRollDice = () => {
-    if (!isMyTurn || !isWaitingRoll || diceRolling) return;
+    if (networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll || diceRolling) return;
     // Clear roll timer on manual roll
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
     autoRollInProgressRef.current = false;
@@ -389,7 +407,7 @@ export default function GamePlay() {
     if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
     setMoveTimerActive(false);
 
-    if (!isMyTurn || !isWaitingMove) return;
+    if (networkStatus !== 'connected' || !isMyTurn || !isWaitingMove) return;
     if (!validTokens.includes(tokenId)) return;
 
     socket.emit('token:move', {
@@ -412,6 +430,18 @@ export default function GamePlay() {
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden justify-between">
+      {/* Network Status Reconnection Ribbon */}
+      {networkStatus !== 'connected' && (
+        <div className="w-full bg-amber-500 text-slate-950 text-[11px] font-black py-1 px-3 flex items-center justify-center gap-2 shadow-lg z-50 animate-pulse flex-shrink-0">
+          <span className="text-xs">⚠️</span>
+          <span>
+            {networkStatus === 'reconnecting'
+              ? 'Poor network connection. Reconnecting to match...'
+              : 'Connection offline. Retrying with exponential backoff...'}
+          </span>
+        </div>
+      )}
+
       {/* Game Header Bar */}
       <header className="w-full max-w-md md:max-w-2xl px-3 py-1.5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
         <button
@@ -499,6 +529,8 @@ export default function GamePlay() {
                   <img
                     src={stk.img}
                     alt={stk.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform"
                   />
                 </button>
@@ -511,7 +543,7 @@ export default function GamePlay() {
             <LudoBoard
               gameState={gameState}
               onSelectToken={handleSelectToken}
-              validTokens={isMyTurn ? validTokens : []}
+              validTokens={isMyTurn && networkStatus === 'connected' ? validTokens : []}
               themeName={themeName}
               moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
               myPlayerIndex={myPlayerIndex >= 0 ? myPlayerIndex : 0}
@@ -519,7 +551,7 @@ export default function GamePlay() {
               diceProps={{
                 value: gameState.diceValue,
                 isRolling: diceRolling,
-                disabled: !isMyTurn || !isWaitingRoll,
+                disabled: networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll,
                 onRoll: handleRollDice,
                 playerColor: currentPlayer?.color?.hex,
                 timerSeconds: isMyTurn && isWaitingRoll ? rollTimerSeconds : null,

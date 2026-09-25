@@ -47,6 +47,8 @@ export default function Navbar({ showBack = true }) {
               <img
                 src={user.avatar_url || '/avatars/default.png'}
                 alt={user.username}
+                loading="lazy"
+                decoding="async"
                 className="w-8 h-8 rounded-full border border-blue-500/50 object-cover bg-slate-800 shadow-sm"
               />
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>

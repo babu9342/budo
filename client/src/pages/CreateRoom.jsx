@@ -69,8 +69,15 @@ export default function CreateRoom() {
           </div>
 
           {error && (
-            <div className="bg-red-500/15 border border-red-500/40 text-red-400 p-3 rounded-xl text-xs">
-              {error}
+            <div className="bg-red-500/15 border border-red-500/40 text-red-400 p-3 rounded-xl text-xs flex items-center justify-between gap-2">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold rounded-lg border border-red-500/30 text-[11px] whitespace-nowrap active:scale-95 transition-all"
+              >
+                🔄 Retry
+              </button>
             </div>
           )}
 

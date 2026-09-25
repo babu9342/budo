@@ -115,7 +115,7 @@ export default function OfflineGame() {
     setGameStarted(true);
   };
 
-  // Roll Dice (1.5s animation matching Dice.jsx)
+  // Roll Dice (1.6s animation matching Dice.jsx)
   const handleRollDice = (isAutoRoll = false) => {
     if (!engine || diceRolling) return;
     const current = gameState.players[gameState.currentTurnIndex];
@@ -135,17 +135,23 @@ export default function OfflineGame() {
       if (rollRes) {
         setGameState(rollRes.gameState);
 
-        // If auto-roll and there are valid moves, auto-pick the best one
-        if (isAutoRoll && rollRes.validTokens && rollRes.validTokens.length > 0) {
+        if (rollRes.autoPass || rollRes.consecutiveSixesSkipped) {
+          // 2-second pause to let players see the rolled dice value before turn switches
+          setTimeout(() => {
+            const nextState = engine.advanceTurn();
+            setGameState(nextState);
+          }, 2000);
+        } else if (isAutoRoll && rollRes.validTokens && rollRes.validTokens.length > 0) {
+          // If auto-roll and there are valid moves, auto-pick after viewing
           setTimeout(() => {
             const bestToken = getBestAutoMove(rollRes.gameState, current.playerIndex, rollRes.diceValue);
             if (bestToken !== null) {
               handleSelectTokenDirect(rollRes.gameState, engine, bestToken);
             }
-          }, 900);
+          }, 800);
         }
       }
-    }, 1500);
+    }, 1600);
   };
 
   // Select and Move Token (direct with explicit refs for auto-move)
@@ -174,6 +180,12 @@ export default function OfflineGame() {
           origin: { y: 0.5 },
           colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
         });
+      } else if (moveRes.requiresTurnSwitch) {
+        // 2-second delay after coin move animation completes before switching to next player's turn
+        setTimeout(() => {
+          const nextState = eng.advanceTurn();
+          setGameState(nextState);
+        }, 2000);
       }
     }
   };
@@ -283,7 +295,7 @@ export default function OfflineGame() {
     };
   }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue]);
 
-  // Bot Turn Automation Effect with visual 1.7s dice roll
+  // Bot Turn Automation Effect with visual 1.6s dice roll and 2-second turn switch delay
   useEffect(() => {
     if (!engine || !gameState || gameState.phase === 'GAME_OVER') return;
 
@@ -300,7 +312,13 @@ export default function OfflineGame() {
             if (rollRes) {
               setGameState(rollRes.gameState);
 
-              if (rollRes.validTokens && rollRes.validTokens.length > 0) {
+              if (rollRes.autoPass || rollRes.consecutiveSixesSkipped) {
+                // 2-second pause to let players see the rolled dice value before turn switches
+                setTimeout(() => {
+                  const nextState = engine.advanceTurn();
+                  setGameState(nextState);
+                }, 2000);
+              } else if (rollRes.validTokens && rollRes.validTokens.length > 0) {
                 const timer2 = setTimeout(() => {
                   const bestToken = getBotMove(
                     engine.getState(),
@@ -327,14 +345,20 @@ export default function OfflineGame() {
                           origin: { y: 0.5 },
                           colors: ['#EC4899', '#F43F5E', '#F59E0B', '#FDE047', '#A855F7', '#3B82F6']
                         });
+                      } else if (moveRes.requiresTurnSwitch) {
+                        // 2-second delay after coin move finishes before next turn begins
+                        setTimeout(() => {
+                          const nextState = engine.advanceTurn();
+                          setGameState(nextState);
+                        }, 2000);
                       }
                     }
                   }
-                }, 1000);
+                }, 800);
                 return () => clearTimeout(timer2);
               }
             }
-          }, 1300);
+          }, 1600);
         }
       }, 700);
       return () => clearTimeout(timer1);

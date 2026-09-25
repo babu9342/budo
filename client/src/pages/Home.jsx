@@ -29,6 +29,8 @@ export default function Home() {
               <img
                 src={user?.avatar_url || '/avatars/default.png'}
                 alt="Avatar"
+                loading="lazy"
+                decoding="async"
                 className="w-14 h-14 rounded-2xl border-2 border-amber-400/80 object-cover bg-slate-800 shadow-md"
               />
               <div>

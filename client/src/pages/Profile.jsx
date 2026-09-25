@@ -70,6 +70,8 @@ export default function Profile() {
               <img
                 src={user?.avatar_url || '/avatars/default.png'}
                 alt={user?.username}
+                loading="lazy"
+                decoding="async"
                 className="w-16 h-16 rounded-2xl border-2 border-amber-400 object-cover bg-slate-800 shadow-md"
               />
               <button

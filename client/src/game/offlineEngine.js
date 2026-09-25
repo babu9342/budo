@@ -44,11 +44,12 @@ export class OfflineLudoEngine {
 
     if (this.consecutiveSixes === 3) {
       this.consecutiveSixes = 0;
-      this.diceValue = null;
-      this.nextTurn();
+      this.phase = 'WAITING_ROLL';
       return {
         diceValue,
         consecutiveSixesSkipped: true,
+        autoPass: true,
+        requiresTurnSwitch: true,
         gameState: this.getState()
       };
     }
@@ -65,11 +66,11 @@ export class OfflineLudoEngine {
 
     if (validTokens.length === 0) {
       this.phase = 'WAITING_ROLL';
-      this.nextTurn();
       return {
         diceValue,
         validTokens: [],
         autoPass: true,
+        requiresTurnSwitch: true,
         gameState: this.getState()
       };
     }
@@ -79,6 +80,7 @@ export class OfflineLudoEngine {
       diceValue,
       validTokens,
       autoPass: false,
+      requiresTurnSwitch: false,
       gameState: this.getState()
     };
   }
@@ -141,18 +143,30 @@ export class OfflineLudoEngine {
       this.diceValue = null;
       this.validMoves = [];
       this.turnStartTime = Date.now();
+      return {
+        gameOver: false,
+        outcome,
+        bonusTurn: true,
+        requiresTurnSwitch: false,
+        gameState: this.getState()
+      };
     } else {
       this.phase = 'WAITING_ROLL';
       this.diceValue = null;
       this.validMoves = [];
-      this.nextTurn();
+      return {
+        gameOver: false,
+        outcome,
+        bonusTurn: false,
+        requiresTurnSwitch: true,
+        gameState: this.getState()
+      };
     }
+  }
 
-    return {
-      gameOver: false,
-      outcome,
-      gameState: this.getState()
-    };
+  advanceTurn() {
+    this.nextTurn();
+    return this.getState();
   }
 
   nextTurn() {
