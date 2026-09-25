@@ -40,12 +40,12 @@ export default function Token({
       onClick={handleClick}
       className={`relative rounded-full flex items-center justify-center transition-all duration-150 select-none ${
         isCaptured
-          ? 'animate-capture-fade z-50'
+          ? 'animate-capture-fade z-50 pointer-events-none'
           : isHopping
-          ? 'animate-token-hop z-50 scale-125'
+          ? 'animate-token-hop z-50 scale-125 pointer-events-none'
           : isValidMove
-          ? 'cursor-pointer hover:scale-125 active:scale-95 z-40'
-          : 'z-10'
+          ? 'cursor-pointer hover:scale-125 active:scale-95 z-50 pointer-events-auto'
+          : 'z-30 pointer-events-auto'
       }`}
       style={{
         width: size === 'sm' ? '22px' : '28px',

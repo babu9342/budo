@@ -443,7 +443,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored in the 4 corners of the board container)
+  // 4 Constant Corner Boxes Configuration (Anchored cleanly in the 4 extreme corners of the board)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -451,8 +451,8 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '0.6%', left: '0.6%' },
-      anchor: 'translate(0%, 0%)'
+      pos: { top: '4px', left: '4px' },
+      anchor: 'translate(0, 0)'
     },
     {
       id: 'green',
@@ -460,8 +460,8 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '0.6%', left: '99.4%' },
-      anchor: 'translate(-100%, 0%)'
+      pos: { top: '4px', left: 'calc(100% - 4px)' },
+      anchor: 'translate(-100%, 0)'
     },
     {
       id: 'yellow',
@@ -469,7 +469,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '99.4%', left: '99.4%' },
+      pos: { top: 'calc(100% - 4px)', left: 'calc(100% - 4px)' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -478,7 +478,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '99.4%', left: '0.6%' },
+      pos: { top: 'calc(100% - 4px)', left: '4px' },
       anchor: 'translate(0%, -100%)'
     }
   ];
@@ -629,10 +629,10 @@ function Classic4PlayerBoard({
         return (
           <div
             key={box.id}
-            className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
+            className={`absolute z-10 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
               isCurrentTurnBox
-                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
+                ? 'w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-slate-950/40 border border-slate-800/60 opacity-30'
             }`}
             style={{
               top: box.pos.top,
@@ -647,10 +647,10 @@ function Classic4PlayerBoard({
             {/* Empty Box Placeholder when dice is in another corner */}
             {!isCurrentTurnBox && (
               <div
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
+                className="w-5 h-5 sm:w-6 sm:h-6 rounded border border-dashed flex items-center justify-center opacity-30"
                 style={{ borderColor: box.colorHex }}
               >
-                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
+                <span className="text-[9px]" style={{ color: box.colorHex }}>🎲</span>
               </div>
             )}
           </div>
@@ -660,7 +660,9 @@ function Classic4PlayerBoard({
       {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies between the 4 fixed boxes (450ms) */}
       {diceProps && (
         <div 
-          className="absolute z-30 pointer-events-auto flex items-center justify-center"
+          className={`absolute z-20 flex items-center justify-center ${
+            diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
+          }`}
           style={{
             top: activeBoxPos.top,
             left: activeBoxPos.left,
@@ -828,13 +830,13 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
             }}
           />
           {/* 2x2 token circles grid */}
-          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center relative z-30 pointer-events-auto">
             {[0, 1, 2, 3].map((slotIdx) => {
               const token = tokens.find(t => t.tokenId === slotIdx);
               return (
                 <div
                   key={slotIdx}
-                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border-2 transition-transform"
+                  className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border-2 transition-transform relative z-30 pointer-events-auto"
                   style={{ backgroundColor: '#FAF0DC', borderColor: colorHex }}
                 >
                   {!token && (
@@ -937,13 +939,13 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         />
 
         {/* 4 Token Bases in 2x2 Dice Pip Grid */}
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center">
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 p-2.5 gap-2 items-center justify-items-center relative z-30 pointer-events-auto">
           {[0, 1, 2, 3].map((slotIdx) => {
             const token = tokens.find(t => t.tokenId === slotIdx);
             return (
               <div
                 key={slotIdx}
-                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform"
+                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform relative z-30 pointer-events-auto"
                 style={{
                   backgroundColor: isDarkMode ? '#1c1917' : '#F8FAFC',
                   borderColor: colorHex

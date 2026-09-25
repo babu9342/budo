@@ -204,7 +204,9 @@ export default function Dice({
   const isRollingActive = internalRoll || isRolling;
 
   return (
-    <div className="dice-container flex flex-col items-center justify-center select-none relative z-30 pointer-events-auto">
+    <div className={`dice-container flex flex-col items-center justify-center select-none relative z-20 ${
+      disabled || isRollingActive ? 'pointer-events-none' : 'pointer-events-auto'
+    }`}>
       {/* Ground Elevation Shadow Floor */}
       <div 
         className={`absolute -bottom-1 w-3/4 rounded-full transition-all duration-300 pointer-events-none ${
@@ -222,7 +224,7 @@ export default function Dice({
         aria-label="Roll Dice"
         className={`relative ${
           inCenter ? 'dice-cube-incenter' : 'dice-cube-standalone'
-        } cursor-pointer active:scale-90 transition-transform ${
+        } ${disabled || isRollingActive ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'} active:scale-90 transition-transform ${
           hasEntered ? 'animate-dice-drop' : ''
         } ${
           isSixJump && !isRollingActive ? 'animate-dice-six-jump' : ''
