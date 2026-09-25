@@ -59,11 +59,18 @@ export default function JoinRoom() {
 
       <main className="w-full max-w-md md:max-w-lg px-4 py-4 space-y-4">
         <button
-          onClick={() => { sound.playClick(); navigate('/'); }}
+          onClick={() => {
+            sound.playClick();
+            if (window.history.state && window.history.state.idx > 0) {
+              navigate(-1);
+            } else {
+              navigate('/home');
+            }
+          }}
           className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Home</span>
+          <span>Back</span>
         </button>
 
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-5">

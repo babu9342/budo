@@ -26,7 +26,7 @@ export default function Result() {
   const handleHome = () => {
     sound.playClick();
     dispatch(resetGame());
-    navigate('/');
+    navigate('/home');
   };
 
   const handlePlayAgain = () => {

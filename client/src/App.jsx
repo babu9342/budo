@@ -52,6 +52,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
           {/* Protected Game Hub & Multiplayer Routes */}
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/game" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/play-options" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />

@@ -358,7 +358,7 @@ export default function GamePlay() {
             🔄 Retry Sync
           </button>
           <button
-            onClick={() => navigate('/game')}
+            onClick={() => navigate('/home')}
             className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-bold active:scale-95 transition-all"
           >
             Back to Hub
@@ -415,7 +415,7 @@ export default function GamePlay() {
       {/* Game Header Bar */}
       <header className="w-full max-w-md md:max-w-2xl px-3 py-1.5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
         <button
-          onClick={() => { sound.playClick(); navigate('/game'); }}
+          onClick={() => { sound.playClick(); navigate('/home'); }}
           className="p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
         >
           <ArrowLeft className="w-4 h-4" />

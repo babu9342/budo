@@ -13,7 +13,7 @@ export default function BottomNav() {
   }
 
   const navItems = [
-    { label: 'Home', icon: Home, path: '/' },
+    { label: 'Home', icon: Home, path: '/home' },
     { label: 'Play', icon: Gamepad2, path: '/play-options' },
     { label: 'Rank', icon: Trophy, path: '/rankings' },
     { label: 'Profile', icon: User, path: '/profile' },
@@ -29,7 +29,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around max-w-md mx-auto sm:max-w-lg md:max-w-xl">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = location.pathname === item.path;
+        const isActive = location.pathname === item.path || (item.path === '/home' && location.pathname === '/game');
 
         return (
           <button

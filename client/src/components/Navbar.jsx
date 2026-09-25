@@ -13,7 +13,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between">
       <div 
-        onClick={() => { sound.playClick(); navigate('/'); }}
+        onClick={() => { sound.playClick(); navigate(user ? '/home' : '/'); }}
         className="cursor-pointer flex items-center gap-2 active:scale-95 transition-transform"
       >
         <BudoLogo size="sm" />

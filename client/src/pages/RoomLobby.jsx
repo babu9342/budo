@@ -81,7 +81,7 @@ export default function RoomLobby() {
     socket.on('room:kicked', (data) => {
       sound.playClick();
       alert(data?.message || 'You have been removed from the room by the host.');
-      navigate('/game');
+      navigate('/home');
     });
 
     // 6. Listen to room full event
