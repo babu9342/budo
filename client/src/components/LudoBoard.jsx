@@ -30,6 +30,7 @@ export default function LudoBoard({
   const [hoppingToken, setHoppingToken] = useState(null);
   const [capturedTokens, setCapturedTokens] = useState({});
   const displayPositionsRef = useRef(null);
+  const lastProcessedTokensRef = useRef('');
   const activeAnimationKeyRef = useRef(null);
   const animIntervalRef = useRef(null);
   const rewindIntervalsRef = useRef({});
@@ -46,6 +47,13 @@ export default function LudoBoard({
   useEffect(() => {
     if (!gameState || !gameState.players) return;
 
+    const tokensSummary = gameState.players.map(p => p.tokens.join(',')).join('|');
+
+    // If tokens haven't changed (e.g. background timer tick), don't interrupt active hopping
+    if (tokensSummary === lastProcessedTokensRef.current && activeAnimationKeyRef.current) {
+      return;
+    }
+
     const currentMap = {};
     gameState.players.forEach((p, pIdx) => {
       p.tokens.forEach((step, tokId) => {
@@ -55,10 +63,12 @@ export default function LudoBoard({
 
     if (!displayPositionsRef.current) {
       displayPositionsRef.current = { ...currentMap };
+      lastProcessedTokensRef.current = tokensSummary;
       setAnimatingPositions({ ...currentMap });
       return;
     }
 
+    lastProcessedTokensRef.current = tokensSummary;
     const prevMap = { ...displayPositionsRef.current };
 
     // Detect captures (token reset from track >= 0 to -1)
@@ -451,7 +461,7 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '3%', left: '3%' },
+      pos: { top: '0.8%', left: '0.8%' },
       anchor: 'translate(0%, 0%)'
     },
     {
@@ -460,7 +470,7 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '3%', left: '97%' },
+      pos: { top: '0.8%', left: '99.2%' },
       anchor: 'translate(-100%, 0%)'
     },
     {
@@ -469,7 +479,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '97%', left: '97%' },
+      pos: { top: '99.2%', left: '99.2%' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -478,7 +488,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '97%', left: '3%' },
+      pos: { top: '99.2%', left: '0.8%' },
       anchor: 'translate(0%, -100%)'
     }
   ];

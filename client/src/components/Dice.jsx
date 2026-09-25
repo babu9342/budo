@@ -237,15 +237,15 @@ export default function Dice({
       >
         {/* Real 3D Cube with 6 Faces */}
         <div
-          className="dice-cube w-full h-full"
+          className={`dice-cube w-full h-full ${isRollingActive ? 'rolling' : ''}`}
           style={{ transform: cubeTransform }}
         >
-          <div className="dice-face face-front">{renderDots(1)}</div>
-          <div className="dice-face face-back">{renderDots(6)}</div>
-          <div className="dice-face face-right">{renderDots(3)}</div>
-          <div className="dice-face face-left">{renderDots(4)}</div>
-          <div className="dice-face face-top">{renderDots(5)}</div>
-          <div className="dice-face face-bottom">{renderDots(2)}</div>
+          <div className="dice-face face front face-front">{renderDots(1)}</div>
+          <div className="dice-face face back face-back">{renderDots(6)}</div>
+          <div className="dice-face face right face-right">{renderDots(3)}</div>
+          <div className="dice-face face left face-left">{renderDots(4)}</div>
+          <div className="dice-face face top face-top">{renderDots(5)}</div>
+          <div className="dice-face face bottom face-bottom">{renderDots(2)}</div>
         </div>
 
         {/* Turn Active Ping Indicator */}

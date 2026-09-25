@@ -246,7 +246,7 @@ html, body {
 }
 
 /* 6 Faces of the 3D Cube */
-.dice-face {
+.dice-face, .face {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -270,38 +270,38 @@ html, body {
 }
 
 @media (min-width: 768px) {
-  .dice-face {
+  .dice-face, .face {
     border-radius: 16px;
   }
 }
 
 /* Position each face in 3D Euclidean space */
-.dice-face.face-front {
+.dice-face.face-front, .face.front {
   transform: rotateY(0deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #2c2e3a 0%, #1e2029 42%, #111218 100%);
 }
 
-.dice-face.face-back {
+.dice-face.face-back, .face.back {
   transform: rotateY(180deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #242631 0%, #171821 42%, #0d0e13 100%);
 }
 
-.dice-face.face-right {
+.dice-face.face-right, .face.right {
   transform: rotateY(90deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #282a35 0%, #1a1c24 42%, #0f1015 100%);
 }
 
-.dice-face.face-left {
+.dice-face.face-left, .face.left {
   transform: rotateY(-90deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #262833 0%, #181920 42%, #0e0f14 100%);
 }
 
-.dice-face.face-top {
+.dice-face.face-top, .face.top {
   transform: rotateX(90deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #353846 0%, #242733 42%, #14161e 100%);
 }
 
-.dice-face.face-bottom {
+.dice-face.face-bottom, .face.bottom {
   transform: rotateX(-90deg) translateZ(var(--dice-half, 28px));
   background: linear-gradient(145deg, #1d1e26 0%, #13141a 42%, #0a0a0d 100%);
 }
