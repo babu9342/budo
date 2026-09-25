@@ -164,7 +164,7 @@ export default function OfflineGame() {
     const currentTurn = eng.currentTurnIndex;
     const currentPlayer = eng.players[currentTurn];
     console.log(`[OfflineGame Coin Move] Current Player: ${currentPlayer?.username} (index: ${currentTurn}, id: ${currentPlayer?.userId}) -> applying move on tokenId: ${tokenId}`);
-    
+
     const moveRes = eng.moveToken(tokenId);
     if (moveRes) {
       setGameState(moveRes.gameState);
@@ -256,11 +256,10 @@ export default function OfflineGame() {
 
     if (!engine || !gameState || gameState.phase !== 'WAITING_MOVE') {
       setMoveTimerActive(false);
-      setMoveTimerSeconds(6);
       return;
     }
 
-    const currentPlayer = gameState.players?.[gameState.currentTurnIndex];
+    const currentPlayer = gameState.players[gameState.currentTurnIndex];
     if (!currentPlayer || currentPlayer.isBot) {
       setMoveTimerActive(false);
       return;
@@ -294,11 +293,18 @@ export default function OfflineGame() {
       }
     }, 200);
 
+    // If only 1 coin is movable, auto-move smoothly after 1.8s preview if player doesn't tap sooner
+    if (validMoves.length === 1) {
+      moveTimerAutoMoveRef.current = setTimeout(() => {
+        handleSelectToken(validMoves[0]);
+      }, 1800);
+    }
+
     return () => {
       if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
       if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
     };
-  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue, gameState?.validMoves?.length]);
+  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue]);
 
   // Bot Turn Automation Effect with visual 1.6s dice roll and 2-second turn switch delay
   useEffect(() => {
@@ -411,11 +417,10 @@ export default function OfflineGame() {
               <button
                 type="button"
                 onClick={() => { sound.playClick(); setGameMode('bot'); }}
-                className={`py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all ${
-                  gameMode === 'bot'
+                className={`py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all ${gameMode === 'bot'
                     ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400'
-                }`}
+                  }`}
               >
                 <Bot className="w-4 h-4" />
                 <span>vs Computer AI</span>
@@ -424,11 +429,10 @@ export default function OfflineGame() {
               <button
                 type="button"
                 onClick={() => { sound.playClick(); setGameMode('local_pass'); }}
-                className={`py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all ${
-                  gameMode === 'local_pass'
+                className={`py-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all ${gameMode === 'local_pass'
                     ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30'
                     : 'bg-slate-950 border-slate-800 text-slate-400'
-                }`}
+                  }`}
               >
                 <Users className="w-4 h-4" />
                 <span>Pass & Play</span>
@@ -445,11 +449,10 @@ export default function OfflineGame() {
                   key={c}
                   type="button"
                   onClick={() => { sound.playClick(); setPlayerCount(c); }}
-                  className={`py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
-                    playerCount === c
+                  className={`py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${playerCount === c
                       ? 'bg-amber-500 border-amber-300 text-slate-950 font-black scale-105'
                       : 'bg-slate-950 border-slate-800 text-slate-400'
-                  }`}
+                    }`}
                 >
                   {c}P
                 </button>
@@ -467,11 +470,10 @@ export default function OfflineGame() {
                     key={d}
                     type="button"
                     onClick={() => { sound.playClick(); setDifficulty(d); }}
-                    className={`py-2 rounded-xl border text-xs font-bold uppercase transition-all ${
-                      difficulty === d
+                    className={`py-2 rounded-xl border text-xs font-bold uppercase transition-all ${difficulty === d
                         ? 'bg-emerald-600 border-emerald-400 text-white shadow-md'
                         : 'bg-slate-950 border-slate-800 text-slate-400'
-                    }`}
+                      }`}
                   >
                     {d}
                   </button>
@@ -706,11 +708,10 @@ export default function OfflineGame() {
                 <button
                   key={t.id}
                   onClick={() => handleSelectTheme(t.id)}
-                  className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all active:scale-95 ${
-                    themeName === t.id
+                  className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all active:scale-95 ${themeName === t.id
                       ? 'bg-purple-600/30 border-purple-400 text-white shadow-lg'
                       : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-xl">{t.icon}</span>
@@ -743,7 +744,7 @@ export default function OfflineGame() {
       {winBanner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in pointer-events-auto">
           <div className="relative bg-gradient-to-b from-slate-900 via-[#1e102d] to-slate-950 border-2 border-pink-500/70 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[0_0_60px_rgba(236,72,153,0.6)] animate-scale-up space-y-5">
-            
+
             {/* Crown with Floating Hearts */}
             <div className="relative flex items-center justify-center">
               <span className="text-3xl sm:text-4xl animate-bounce">💖</span>
