@@ -256,10 +256,11 @@ export default function OfflineGame() {
 
     if (!engine || !gameState || gameState.phase !== 'WAITING_MOVE') {
       setMoveTimerActive(false);
+      setMoveTimerSeconds(6);
       return;
     }
 
-    const currentPlayer = gameState.players[gameState.currentTurnIndex];
+    const currentPlayer = gameState.players?.[gameState.currentTurnIndex];
     if (!currentPlayer || currentPlayer.isBot) {
       setMoveTimerActive(false);
       return;
@@ -293,18 +294,11 @@ export default function OfflineGame() {
       }
     }, 200);
 
-    // If only 1 coin is movable, auto-move smoothly after 1.8s preview if player doesn't tap sooner
-    if (validMoves.length === 1) {
-      moveTimerAutoMoveRef.current = setTimeout(() => {
-        handleSelectToken(validMoves[0]);
-      }, 1800);
-    }
-
     return () => {
       if (moveTimerIntervalRef.current) clearInterval(moveTimerIntervalRef.current);
       if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
     };
-  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue]);
+  }, [engine, gameState?.phase, gameState?.currentTurnIndex, gameState?.diceValue, gameState?.validMoves?.length]);
 
   // Bot Turn Automation Effect with visual 1.6s dice roll and 2-second turn switch delay
   useEffect(() => {

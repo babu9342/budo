@@ -443,7 +443,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored cleanly in the 4 extreme corners of the board)
+  // 4 Constant Corner Boxes Configuration (Dynamically anchored to the outermost corner of each player's home base)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -451,7 +451,7 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '4px', left: '4px' },
+      pos: { top: 'clamp(6px, 1.5%, 12px)', left: 'clamp(6px, 1.5%, 12px)' },
       anchor: 'translate(0, 0)'
     },
     {
@@ -460,7 +460,7 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '4px', left: 'calc(100% - 4px)' },
+      pos: { top: 'clamp(6px, 1.5%, 12px)', left: 'calc(100% - clamp(6px, 1.5%, 12px))' },
       anchor: 'translate(-100%, 0)'
     },
     {
@@ -469,7 +469,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: 'calc(100% - 4px)', left: 'calc(100% - 4px)' },
+      pos: { top: 'calc(100% - clamp(6px, 1.5%, 12px))', left: 'calc(100% - clamp(6px, 1.5%, 12px))' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -478,8 +478,8 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: 'calc(100% - 4px)', left: '4px' },
-      anchor: 'translate(0%, -100%)'
+      pos: { top: 'calc(100% - clamp(6px, 1.5%, 12px))', left: 'clamp(6px, 1.5%, 12px)' },
+      anchor: 'translate(0, -100%)'
     }
   ];
 
