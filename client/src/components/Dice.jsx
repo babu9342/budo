@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 
+// Exact 3D Cube Rotation Map (Euler angles to bring face N facing straight-on to viewer)
+const FACE_ROTATIONS = {
+  1: { x: 0, y: 0, z: 0 },       // Front Face: 1 dot
+  2: { x: 90, y: 0, z: 0 },      // Bottom Face: 2 dots
+  3: { x: 0, y: -90, z: 0 },     // Right Face: 3 dots
+  4: { x: 0, y: 90, z: 0 },      // Left Face: 4 dots
+  5: { x: -90, y: 0, z: 0 },     // Top Face: 5 dots
+  6: { x: 0, y: 180, z: 0 }      // Back Face: 6 dots
+};
+
 export default function Dice({
   value,
   isRolling,
@@ -14,14 +24,19 @@ export default function Dice({
 }) {
   const [internalRoll, setInternalRoll] = useState(false);
   const [isLandingPop, setIsLandingPop] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value || 1);
   const [hasEntered, setHasEntered] = useState(false);
   const [isSixJump, setIsSixJump] = useState(false);
   const [showCoinEntry, setShowCoinEntry] = useState(false);
-  const [tumbleVars, setTumbleVars] = useState({});
+
   const prevDisabledRef = useRef(disabled);
   const sixJumpTimeoutRef = useRef(null);
   const coinEntryTimeoutRef = useRef(null);
+  const currentRotRef = useRef({ x: 0, y: 0, z: 0 });
+
+  const [cubeTransform, setCubeTransform] = useState(() => {
+    const initTarget = FACE_ROTATIONS[value || 1] || FACE_ROTATIONS[1];
+    return `rotateX(${initTarget.x}deg) rotateY(${initTarget.y}deg) rotateZ(${initTarget.z}deg)`;
+  });
 
   // Trigger drop bounce when it becomes player's active turn
   useEffect(() => {
@@ -33,12 +48,20 @@ export default function Dice({
     prevDisabledRef.current = disabled;
   }, [disabled]);
 
+  // Handle value change when not rolling
   useEffect(() => {
-    if (value) {
-      setDisplayValue(value);
+    if (value && !isRolling && !internalRoll) {
+      const target = FACE_ROTATIONS[value] || FACE_ROTATIONS[1];
+      const cur = currentRotRef.current;
+      const modX = Math.round(cur.x / 360) * 360 + target.x;
+      const modY = Math.round(cur.y / 360) * 360 + target.y;
+      const modZ = Math.round(cur.z / 360) * 360 + target.z;
+      currentRotRef.current = { x: modX, y: modY, z: modZ };
+      setCubeTransform(`rotateX(${modX}deg) rotateY(${modY}deg) rotateZ(${modZ}deg)`);
     }
-  }, [value]);
+  }, [value, isRolling, internalRoll]);
 
+  // Multi-axis physical 3D tumble on roll
   useEffect(() => {
     if (isRolling) {
       setInternalRoll(true);
@@ -46,51 +69,37 @@ export default function Dice({
       setShowCoinEntry(false);
       setIsSixJump(false);
 
-      // Generate randomized 3D tumbling angles for physical realistic roll path
-      const randOffsetX = (Math.random() - 0.5) * 60;
-      const randOffsetY = (Math.random() - 0.5) * 60;
-      const randOffsetZ = (Math.random() - 0.5) * 40;
-
-      setTumbleVars({
-        '--tumble-rot-x': `${720 + randOffsetX}deg`,
-        '--tumble-rot-y': `${1080 + randOffsetY}deg`,
-        '--tumble-rot-z': `${360 + randOffsetZ}deg`,
-        '--tumble-x1': `${160 + (Math.random() - 0.5) * 40}deg`,
-        '--tumble-y1': `${210 + (Math.random() - 0.5) * 40}deg`,
-        '--tumble-z1': `${45 + (Math.random() - 0.5) * 30}deg`,
-        '--tumble-x2': `${380 + (Math.random() - 0.5) * 50}deg`,
-        '--tumble-y2': `${520 + (Math.random() - 0.5) * 50}deg`,
-        '--tumble-z2': `${-65 + (Math.random() - 0.5) * 30}deg`,
-        '--tumble-x3': `${560 + (Math.random() - 0.5) * 40}deg`,
-        '--tumble-y3': `${780 + (Math.random() - 0.5) * 40}deg`,
-        '--tumble-z3': `${120 + (Math.random() - 0.5) * 30}deg`,
-        '--tumble-x4': `${680 + (Math.random() - 0.5) * 30}deg`,
-        '--tumble-y4': `${990 + (Math.random() - 0.5) * 30}deg`,
-        '--tumble-z4': `${-25 + (Math.random() - 0.5) * 20}deg`,
-        '--tumble-x5': `${715 + (Math.random() - 0.5) * 15}deg`,
-        '--tumble-y5': `${1070 + (Math.random() - 0.5) * 15}deg`,
-        '--tumble-z5': `${8 + (Math.random() - 0.5) * 10}deg`
-      });
-
       sound.playDiceRoll();
       triggerHaptic('medium');
 
-      // Cycle numbers every 160ms during rolling for 1.6s total (1.5–2s duration)
-      const interval = setInterval(() => {
-        setDisplayValue(Math.floor(Math.random() * 6) + 1);
-      }, 160);
+      const finalVal = value || 1;
+      const target = FACE_ROTATIONS[finalVal] || FACE_ROTATIONS[1];
+      const cur = currentRotRef.current;
+
+      // Add 2-3 full revolutions across all 3 axes + slight randomized physics variation
+      const extraRevsX = 2 + Math.floor(Math.random() * 2); // 720 or 1080 deg
+      const extraRevsY = 3 + Math.floor(Math.random() * 2); // 1080 or 1440 deg
+      const extraRevsZ = 1 + Math.floor(Math.random() * 2); // 360 or 720 deg
+
+      const nextBaseX = (Math.floor(cur.x / 360) + extraRevsX) * 360;
+      const nextBaseY = (Math.floor(cur.y / 360) + extraRevsY) * 360;
+      const nextBaseZ = (Math.floor(cur.z / 360) + extraRevsZ) * 360;
+
+      const finalX = nextBaseX + target.x;
+      const finalY = nextBaseY + target.y;
+      const finalZ = nextBaseZ + target.z;
+
+      currentRotRef.current = { x: finalX, y: finalY, z: finalZ };
+      setCubeTransform(`rotateX(${finalX}deg) rotateY(${finalY}deg) rotateZ(${finalZ}deg)`);
 
       const timeout = setTimeout(() => {
-        clearInterval(interval);
         setInternalRoll(false);
-        if (value) setDisplayValue(value);
-        setTumbleVars({});
 
-        // Smooth landing settle bounce
+        // Tactile landing bounce settle
         setIsLandingPop(true);
         setTimeout(() => setIsLandingPop(false), 450);
 
-        // Six: trigger fast upward jump + show coin entry indicator
+        // Six: upward victory jump + coin entry badge
         if (value === 6) {
           if (sixJumpTimeoutRef.current) clearTimeout(sixJumpTimeoutRef.current);
           if (coinEntryTimeoutRef.current) clearTimeout(coinEntryTimeoutRef.current);
@@ -102,10 +111,9 @@ export default function Dice({
           sixJumpTimeoutRef.current = setTimeout(() => setIsSixJump(false), 800);
           coinEntryTimeoutRef.current = setTimeout(() => setShowCoinEntry(false), 2200);
         }
-      }, 1600);
+      }, 1500);
 
       return () => {
-        clearInterval(interval);
         clearTimeout(timeout);
       };
     } else {
@@ -124,8 +132,8 @@ export default function Dice({
   // Dynamic 3D engraved pips styled with realistic cavity depth and polished highlights
   const renderDots = (val) => {
     const dotClasses = inCenter
-      ? "w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 rounded-full dice-pip-white"
-      : "w-4 h-4 sm:w-5 sm:h-5 rounded-full dice-pip-white";
+      ? "w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 rounded-full dice-pip-white flex-shrink-0"
+      : "w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 rounded-full dice-pip-white flex-shrink-0";
 
     switch (val) {
       case 1:
@@ -169,7 +177,7 @@ export default function Dice({
             <span />
             <span className={dotClasses} />
             <span />
-            <span className={`${inCenter ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-5 h-5 sm:w-6 sm:h-6'} rounded-full dice-pip-red`} />
+            <span className={`${inCenter ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-5 h-5 sm:w-6 sm:h-6'} rounded-full dice-pip-red flex-shrink-0`} />
             <span />
             <span className={dotClasses} />
             <span />
@@ -211,32 +219,35 @@ export default function Dice({
       <button
         onClick={handleDiceClick}
         disabled={disabled || isRollingActive}
-        style={tumbleVars}
         aria-label="Roll Dice"
-        className={`dice ${isRollingActive ? 'rolling' : ''} relative ${
-          inCenter
-            ? 'w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl'
-            : 'w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl'
-        } dice-3d-cube border-2 flex items-center justify-center cursor-pointer active:scale-90 ${
+        className={`relative ${
+          inCenter ? 'dice-cube-incenter' : 'dice-cube-standalone'
+        } cursor-pointer active:scale-90 transition-transform ${
           hasEntered ? 'animate-dice-drop' : ''
         } ${
           isSixJump && !isRollingActive ? 'animate-dice-six-jump' : ''
         } ${
-          isLandingPop ? 'animate-dice-pop ring-2 sm:ring-4 ring-white/90' : ''
+          isLandingPop ? 'animate-dice-pop' : ''
         } ${
-          !disabled
-            ? 'ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105'
-            : 'opacity-90'
+          !disabled ? 'ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105 rounded-xl sm:rounded-2xl' : ''
         }`}
       >
-        {/* 3D Dice Face Bevel & Surface Inset */}
-        <div className="w-full h-full overflow-hidden flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#262833]/90 via-[#181920]/95 to-[#0d0e12] shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.85)] relative border border-white/10 transition-transform duration-150">
-          {renderDots(displayValue)}
+        {/* Real 3D Cube with 6 Faces */}
+        <div
+          className="dice-cube w-full h-full"
+          style={{ transform: cubeTransform }}
+        >
+          <div className="dice-face face-front">{renderDots(1)}</div>
+          <div className="dice-face face-back">{renderDots(6)}</div>
+          <div className="dice-face face-right">{renderDots(3)}</div>
+          <div className="dice-face face-left">{renderDots(4)}</div>
+          <div className="dice-face face-top">{renderDots(5)}</div>
+          <div className="dice-face face-bottom">{renderDots(2)}</div>
         </div>
 
         {/* Turn Active Ping Indicator */}
         {!disabled && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4">
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4 pointer-events-none z-40">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80" />
             <span className="relative inline-flex rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 bg-amber-500 border border-white" />
           </span>
@@ -244,8 +255,8 @@ export default function Dice({
 
         {/* 6 Rolled: Compact badge embedded directly on dice bottom inside container */}
         {isSix && showCoinEntry && (
-          <div className="absolute inset-x-1 bottom-1 z-30 pointer-events-none flex items-center justify-center">
-            <span className="bg-amber-400 text-slate-950 font-black text-[7px] sm:text-[8px] uppercase px-1 rounded-full shadow-md animate-bounce whitespace-nowrap">
+          <div className="absolute inset-x-1 -bottom-4 z-40 pointer-events-none flex items-center justify-center">
+            <span className="bg-amber-400 text-slate-950 font-black text-[7px] sm:text-[8px] uppercase px-1.5 py-0.5 rounded-full shadow-md animate-bounce whitespace-nowrap">
               🪙 6 Bonus!
             </span>
           </div>
@@ -253,9 +264,9 @@ export default function Dice({
 
         {/* Countdown timer badge on dice — visible when waiting to roll */}
         {showTimer && !showCoinEntry && (
-          <div className="absolute inset-0 flex items-end justify-center pb-0.5 sm:pb-1 pointer-events-none">
+          <div className="absolute inset-x-0 -bottom-3 z-40 flex items-center justify-center pointer-events-none">
             <span className={`text-[8px] sm:text-[9px] font-black font-mono px-1.5 py-0.2 rounded-full ${
-              isUrgent ? 'bg-red-500 text-white animate-pulse' : 'bg-black/80 text-amber-300 border border-amber-400/30'
+              isUrgent ? 'bg-red-500 text-white animate-pulse' : 'bg-black/85 text-amber-300 border border-amber-400/40 shadow-sm'
             }`}>
               {timerSeconds}s
             </span>
