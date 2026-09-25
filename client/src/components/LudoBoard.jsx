@@ -919,22 +919,21 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         )}
       </div>
 
-      {/* Inset Base Square with Diamond Pips & 2x2 Token Bases */}
+      {/* Inset Base Square with Diamond Pips & 2x2 Token Bases (Sleek Dark Glassmorphic with Soft Shadow) */}
       <div
-        className={`w-[82%] aspect-square rounded-xl shadow-lg border flex items-center justify-center relative p-1 transition-all ${
-          isDarkMode ? 'bg-[#121212] border-white/15 shadow-black/80' : 'bg-white border-black/10'
-        }`}
+        className="w-[82%] aspect-square rounded-xl shadow-2xl border flex items-center justify-center relative p-1 transition-all bg-slate-950/70 border-white/10 shadow-black/80"
         style={isCurrentTurn ? {
-          boxShadow: `0 0 14px ${colorHex}88, inset 0 0 10px ${colorHex}33`
+          boxShadow: `0 0 16px ${colorHex}66, inset 0 0 10px ${colorHex}22`,
+          borderColor: `${colorHex}99`
         } : undefined}
       >
         {/* Rotated Diamond Background */}
         <div
           className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
           style={{
-            borderColor: colorHex,
-            backgroundColor: isDarkMode ? `${colorHex}1a` : `${colorHex}25`,
-            boxShadow: isCurrentTurn ? `0 0 14px ${colorHex}77` : (isDarkMode ? `0 0 10px ${colorHex}35` : 'none')
+            borderColor: `${colorHex}55`,
+            backgroundColor: `${colorHex}15`,
+            boxShadow: isCurrentTurn ? `0 0 14px ${colorHex}66` : 'none'
           }}
         />
 
@@ -945,9 +944,9 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
             return (
               <div
                 key={slotIdx}
-                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-sm border transition-transform relative z-30 pointer-events-auto"
+                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center relative shadow-md border transition-transform relative z-30 pointer-events-auto"
                 style={{
-                  backgroundColor: isDarkMode ? '#1c1917' : '#F8FAFC',
+                  backgroundColor: 'rgba(15, 23, 42, 0.85)',
                   borderColor: colorHex
                 }}
               >

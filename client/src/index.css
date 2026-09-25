@@ -306,6 +306,19 @@ html, body {
   background: linear-gradient(145deg, #1d1e26 0%, #13141a 42%, #0a0a0d 100%);
 }
 
+/* 3D Dice Pips (Crisp, High-Contrast Embossed Dots) */
+.dice-pip-white {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e2e8f0 65%, #94a3b8 100%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 0 4px rgba(255, 255, 255, 0.4);
+  display: inline-block;
+}
+
+.dice-pip-red {
+  background: radial-gradient(circle at 35% 35%, #ff4d4d 0%, #ef4444 55%, #991b1b 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 10px rgba(239, 68, 68, 0.8);
+  display: inline-block;
+}
+
 /* Dice Settle & Land with Natural Tactile Bounce */
 @keyframes diceSettleLand {
   0% {

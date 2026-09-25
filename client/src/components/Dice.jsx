@@ -222,6 +222,7 @@ export default function Dice({
         onClick={handleDiceClick}
         disabled={disabled || isRollingActive}
         aria-label="Roll Dice"
+        style={{ transformStyle: 'preserve-3d' }}
         className={`relative ${
           inCenter ? 'dice-cube-incenter' : 'dice-cube-standalone'
         } ${disabled || isRollingActive ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'} active:scale-90 transition-transform ${
