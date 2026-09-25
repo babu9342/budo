@@ -199,6 +199,33 @@ function executeInMemorySql(text, params = []) {
     return { rows: [newUser], rowCount: 1 };
   }
 
+  if (lowerSql.startsWith('with new_room as') || (lowerSql.includes('insert into rooms') && lowerSql.includes('insert into room_players'))) {
+    const id = memoryStore._autoInc.rooms++;
+    const [code, host_id, max_players, is_private] = params;
+    const newRoom = {
+      id,
+      code,
+      host_id: Number(host_id),
+      max_players: Number(max_players || 4),
+      status: 'WAITING',
+      is_private: is_private !== false,
+      created_at: new Date()
+    };
+    memoryStore.rooms.push(newRoom);
+
+    const playerId = memoryStore._autoInc.room_players++;
+    const newPlayer = {
+      id: playerId,
+      room_id: id,
+      user_id: Number(host_id),
+      is_ready: true,
+      player_index: 0,
+      joined_at: new Date()
+    };
+    memoryStore.room_players.push(newPlayer);
+    return { rows: [newRoom], rowCount: 1 };
+  }
+
   if (lowerSql.startsWith('insert into rooms')) {
     const id = memoryStore._autoInc.rooms++;
     const [code, host_id, max_players, is_private] = params;

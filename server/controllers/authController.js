@@ -59,30 +59,44 @@ export async function register(req, res) {
 }
 
 export async function login(req, res) {
+  const timerLabel = `auth:login:${Date.now()}`;
+  console.time(timerLabel);
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.timeEnd(timerLabel);
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
+    console.time(`${timerLabel}:db-lookup`);
     const result = await query(
-      `SELECT * FROM users WHERE email = $1`,
-      [email.toLowerCase()]
+      `SELECT id, username, email, password_hash, avatar_url, ranking_points, games_played, wins, losses, captures
+       FROM users WHERE email = $1`,
+      [email.toLowerCase().trim()]
     );
+    console.timeEnd(`${timerLabel}:db-lookup`);
 
     if (result.rows.length === 0) {
+      console.timeEnd(timerLabel);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const user = result.rows[0];
+
+    console.time(`${timerLabel}:bcrypt-compare`);
     const isMatch = await bcrypt.compare(password, user.password_hash);
+    console.timeEnd(`${timerLabel}:bcrypt-compare`);
 
     if (!isMatch) {
+      console.timeEnd(timerLabel);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
+    console.time(`${timerLabel}:token-gen`);
     const token = generateToken(user);
+    console.timeEnd(`${timerLabel}:token-gen`);
+
     const safeUser = {
       id: user.id,
       username: user.username,
@@ -95,6 +109,7 @@ export async function login(req, res) {
       captures: user.captures || 0
     };
 
+    console.timeEnd(timerLabel);
     return res.json({
       success: true,
       message: 'Logged in successfully',
@@ -102,6 +117,7 @@ export async function login(req, res) {
       user: safeUser
     });
   } catch (err) {
+    console.timeEnd(timerLabel);
     console.error('Login Error:', err);
     return res.status(500).json({ success: false, message: 'Internal server error' });
   }

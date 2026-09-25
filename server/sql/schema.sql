@@ -127,11 +127,17 @@ CREATE TABLE IF NOT EXISTS game_history (
 );
 
 -- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_rooms_code ON rooms(code);
+CREATE INDEX IF NOT EXISTS idx_rooms_host_id ON rooms(host_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms(status);
 CREATE INDEX IF NOT EXISTS idx_room_players_room_id ON room_players(room_id);
+CREATE INDEX IF NOT EXISTS idx_room_players_user_id ON room_players(user_id);
 CREATE INDEX IF NOT EXISTS idx_games_room_id ON games(room_id);
 CREATE INDEX IF NOT EXISTS idx_game_players_game_id ON game_players(game_id);
 CREATE INDEX IF NOT EXISTS idx_game_moves_game_id ON game_moves(game_id);
 CREATE INDEX IF NOT EXISTS idx_rankings_points ON rankings(points DESC);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_room_id ON chat_messages(room_id);
 CREATE INDEX IF NOT EXISTS idx_game_history_user_id ON game_history(user_id);
+

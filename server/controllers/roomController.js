@@ -6,33 +6,40 @@ function generateRoomCode() {
 }
 
 export async function createRoom(req, res) {
+  const timerLabel = `room:create:${Date.now()}`;
+  console.time(timerLabel);
   try {
     const { maxPlayers = 4, isPrivate = true } = req.body;
     const hostId = req.user.id;
     const code = generateRoomCode();
 
+    console.time(`${timerLabel}:db-insert`);
+    // Single atomic CTE query to create room and host entry in 1 roundtrip
     const result = await query(
-      `INSERT INTO rooms (code, host_id, max_players, is_private)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, code, host_id, max_players, status, is_private, created_at`,
+      `WITH new_room AS (
+         INSERT INTO rooms (code, host_id, max_players, is_private)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, code, host_id, max_players, status, is_private, created_at
+       ),
+       new_player AS (
+         INSERT INTO room_players (room_id, user_id, is_ready, player_index)
+         SELECT id, $2, true, 0 FROM new_room
+       )
+       SELECT id, code, host_id, max_players, status, is_private, created_at FROM new_room`,
       [code, hostId, Number(maxPlayers), isPrivate]
     );
+    console.timeEnd(`${timerLabel}:db-insert`);
 
     const room = result.rows[0];
 
-    // Add host as player
-    await query(
-      `INSERT INTO room_players (room_id, user_id, is_ready, player_index)
-       VALUES ($1, $2, $3, $4)`,
-      [room.id, hostId, true, 0]
-    );
-
+    console.timeEnd(timerLabel);
     return res.status(201).json({
       success: true,
       room,
       shareUrl: `${process.env.CLIENT_URL || 'https://budo-game.com'}/join/${code}`
     });
   } catch (err) {
+    console.timeEnd(timerLabel);
     console.error('Create Room Error:', err);
     return res.status(500).json({ success: false, message: 'Failed to create room' });
   }
