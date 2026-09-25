@@ -5,9 +5,29 @@ import { triggerHaptic } from '../utils/haptics';
 
 export const STICKER_PACKS = [
   {
-    id: '3d_stickers',
-    name: '3D Animated',
+    id: 'animated_emojis',
+    name: 'Animated Emojis',
     stickers: [
+      { id: 'emoji-1', image: '/emojis/emoji-1.png', label: 'Grin Laugh 😆', anim: 'animate-emoji-wobble' },
+      { id: 'emoji-2', image: '/emojis/emoji-2.png', label: 'Angry Rage 😡', anim: 'animate-emoji-shake' },
+      { id: 'emoji-3', image: '/emojis/emoji-3.png', label: 'Bored Roll 🙄', anim: 'animate-emoji-bounce' },
+      { id: 'emoji-4', image: '/emojis/emoji-4.png', label: 'Crying Tears 😭', anim: 'animate-emoji-shake' },
+      { id: 'emoji-5', image: '/emojis/emoji-5.png', label: 'Nervous Teeth 😬', anim: 'animate-emoji-shake' },
+      { id: 'emoji-6', image: '/emojis/emoji-6.png', label: 'Sweat Wipe 😰', anim: 'animate-emoji-wobble' },
+      { id: 'emoji-7', image: '/emojis/emoji-7.png', label: 'Yawn Sleepy 🥱', anim: 'animate-emoji-bounce' },
+      { id: 'emoji-8', image: '/emojis/emoji-8.png', label: 'Wink Tongue 😜', anim: 'animate-emoji-wobble' },
+      { id: 'emoji-9', image: '/emojis/emoji-9.png', label: 'Budo King 👑', anim: 'animate-emoji-bounce' },
+      { id: 'emoji-10', image: '/emojis/emoji-10.png', label: 'Cool Dice 😎', anim: 'animate-emoji-pulse' },
+      { id: 'emoji-11', image: '/emojis/emoji-11.png', label: 'Heart Eyes 😍', anim: 'animate-emoji-pulse' },
+      { id: 'emoji-12', image: '/emojis/emoji-12.png', label: 'Puddle Cry 😢', anim: 'animate-emoji-shake' },
+      { id: 'emoji-13', image: '/emojis/emoji-13.png', label: 'Rose Love 🌹', anim: 'animate-sticker-rose' }
+    ]
+  },
+  {
+    id: '3d_stickers',
+    name: '3D Stickers',
+    stickers: [
+      { id: 'rose_love', image: '/stickers/rose_love.png', label: 'Rose Love 🌹', anim: 'animate-sticker-rose' },
       { id: 'flex_beard', image: '/stickers/flex_beard.png', label: 'Flex Power 💪', anim: 'animate-sticker-flex' },
       { id: 'king_crown', image: '/stickers/king_crown.png', label: 'King Crown 👑', anim: 'animate-sticker-crown' },
       { id: 'hurry_watch', image: '/stickers/hurry_watch.png', label: 'Hurry Up! ⏱️', anim: 'animate-sticker-hurry' },
@@ -68,7 +88,7 @@ export const STICKER_PACKS = [
 ];
 
 export default function StickerPickerModal({ isOpen, onClose, onSelectSticker }) {
-  const [activeTab, setActiveTab] = useState('3d_stickers');
+  const [activeTab, setActiveTab] = useState('animated_emojis');
   const [tappingIndex, setTappingIndex] = useState(null);
 
   if (!isOpen) return null;
@@ -99,9 +119,9 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
         {/* Modal Header */}
         <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-2">
-            <span className="text-xl">✨</span>
+            <span className="text-xl">🎭</span>
             <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-              3D Animated Stickers & Reactions
+              Animated Emojis & 3D Stickers
             </h3>
           </div>
           <button
@@ -116,10 +136,23 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
         <div className="grid grid-cols-4 gap-1 p-2 bg-slate-950 border-b border-slate-800 text-[10px] sm:text-[11px] font-black">
           <button
             type="button"
+            onClick={() => { sound.playClick(); setActiveTab('animated_emojis'); }}
+            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'animated_emojis'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Smile className="w-3 h-3" />
+            <span>12 Emojis</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => { sound.playClick(); setActiveTab('3d_stickers'); }}
             className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
               activeTab === '3d_stickers'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md'
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -136,21 +169,8 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Smile className="w-3 h-3" />
-            <span>Emojis</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { sound.playClick(); setActiveTab('ludo'); }}
-            className={`py-1.5 rounded-xl transition-all flex items-center justify-center gap-1 ${
-              activeTab === 'ludo'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span>🎲</span>
-            <span>Ludo</span>
+            <span>😀</span>
+            <span>Icons</span>
           </button>
 
           <button
@@ -163,13 +183,13 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
             }`}
           >
             <MessageCircle className="w-3 h-3" />
-            <span>Chat</span>
+            <span>Phrases</span>
           </button>
         </div>
 
         {/* Sticker Grid Panel */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 no-scrollbar">
-          {activeTab === '3d_stickers' ? (
+          {activeTab === 'animated_emojis' || activeTab === '3d_stickers' ? (
             <div className="grid grid-cols-3 gap-3 place-items-center">
               {currentPack.stickers.map((item, idx) => {
                 const isTapping = tappingIndex === idx;
@@ -184,6 +204,7 @@ export default function StickerPickerModal({ isOpen, onClose, onSelectSticker })
                     <img
                       src={item.image}
                       alt={item.label}
+                      loading="lazy"
                       className={`w-14 h-14 sm:w-16 sm:h-16 object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] ${item.anim}`}
                     />
                     <span className="text-[9px] sm:text-[10px] font-black text-amber-300 mt-1 truncate max-w-[95%]">

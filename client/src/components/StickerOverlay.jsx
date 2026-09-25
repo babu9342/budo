@@ -13,16 +13,21 @@ export default function StickerOverlay({ stickers = [], playerCount = 4 }) {
 
   const isLeaving = stk.isLeaving;
   const playerColor = stk.color || '#F59E0B';
-  const isImageSticker = Boolean(stk.content && (stk.content.startsWith('/stickers/') || stk.content.includes('.png') || stk.type === 'image'));
+  const isImageSticker = Boolean(stk.content && (stk.content.startsWith('/stickers/') || stk.content.startsWith('/emojis/') || stk.content.includes('.png') || stk.type === 'image'));
   const isPhrase = !isImageSticker && Boolean(stk.content && (stk.content.length > 3 || stk.type === 'text'));
 
   let customAnimClass = 'animate-sticker-bob';
   if (isImageSticker) {
-    if (stk.content.includes('flex_beard')) customAnimClass = 'animate-sticker-flex';
+    if (stk.content.includes('rose_love') || stk.content.includes('emoji-13') || stk.content.includes('emoji_13')) customAnimClass = 'animate-sticker-rose';
+    else if (stk.content.includes('flex_beard')) customAnimClass = 'animate-sticker-flex';
     else if (stk.content.includes('king_crown')) customAnimClass = 'animate-sticker-crown';
     else if (stk.content.includes('hurry_watch')) customAnimClass = 'animate-sticker-hurry';
     else if (stk.content.includes('rofl_shoes')) customAnimClass = 'animate-sticker-rofl';
     else if (stk.content.includes('tea_sip')) customAnimClass = 'animate-sticker-tea';
+    else if (stk.content.includes('emoji-1') || stk.content.includes('emoji-6') || stk.content.includes('emoji-8')) customAnimClass = 'animate-emoji-wobble';
+    else if (stk.content.includes('emoji-2') || stk.content.includes('emoji-4') || stk.content.includes('emoji-5') || stk.content.includes('emoji-12')) customAnimClass = 'animate-emoji-shake';
+    else if (stk.content.includes('emoji-3') || stk.content.includes('emoji-7') || stk.content.includes('emoji-9')) customAnimClass = 'animate-emoji-bounce';
+    else if (stk.content.includes('emoji-10') || stk.content.includes('emoji-11')) customAnimClass = 'animate-emoji-pulse';
   }
 
   const pIdx = stk.playerIndex !== undefined ? stk.playerIndex : -1;

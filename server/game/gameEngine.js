@@ -239,6 +239,7 @@ class GameManager {
     }
 
     const currentPlayer = game.players[game.currentTurnIndex];
+    console.log(`[Server rollDice] Room: ${roomId} -> Current Turn: ${currentPlayer?.username} (index: ${game.currentTurnIndex}, userId: ${currentPlayer?.userId})`);
     if (currentPlayer.userId !== userId && !currentPlayer.isBot) {
       throw new Error('Not your turn');
     }
@@ -317,6 +318,7 @@ class GameManager {
     }
 
     const currentPlayer = game.players[game.currentTurnIndex];
+    console.log(`[Server moveToken] Applying coin move to currentPlayer: ${currentPlayer?.username} (index: ${game.currentTurnIndex}, userId: ${currentPlayer?.userId}) -> tokenId: ${tokenId}`);
     if (currentPlayer.userId !== userId && !currentPlayer.isBot) {
       throw new Error('Not your turn');
     }

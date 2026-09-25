@@ -395,11 +395,12 @@ export default function GamePlay() {
 
   const handleRollDice = () => {
     if (networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll || diceRolling) return;
+    console.log(`[GamePlay Dice Roll] Current Player: ${currentPlayer?.username} (index: ${gameState?.currentTurnIndex}, userId: ${currentPlayer?.userId}) is rolling the dice.`);
     // Clear roll timer on manual roll
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
     autoRollInProgressRef.current = false;
     dispatch(setDiceRolling(true));
-    socket.emit('dice:roll', { roomId: gameState.roomId || code });
+    socket.emit('dice:roll', { roomId: gameState.roomId || code, user: { id: user?.id, username: user?.username } });
   };
 
   const handleSelectToken = (tokenId) => {
@@ -407,12 +408,15 @@ export default function GamePlay() {
     if (moveTimerAutoMoveRef.current) clearTimeout(moveTimerAutoMoveRef.current);
     setMoveTimerActive(false);
 
+    console.log(`[GamePlay Token Move] Current Player: ${currentPlayer?.username} (index: ${gameState?.currentTurnIndex}, userId: ${currentPlayer?.userId}) -> moving tokenId: ${tokenId}`);
+
     if (networkStatus !== 'connected' || !isMyTurn || !isWaitingMove) return;
     if (!validTokens.includes(tokenId)) return;
 
     socket.emit('token:move', {
       roomId: gameState.roomId || code,
-      tokenId
+      tokenId,
+      user: { id: user?.id, username: user?.username }
     });
   };
 
@@ -493,11 +497,22 @@ export default function GamePlay() {
             <div className="w-px h-4 bg-slate-800/80 flex-shrink-0" />
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               {[
-                { img: '/stickers/flex_beard.png', name: 'Flex Power 💪', anim: 'hover:scale-125' },
-                { img: '/stickers/king_crown.png', name: 'King Crown 👑', anim: 'hover:scale-125' },
-                { img: '/stickers/hurry_watch.png', name: 'Hurry Up! ⏱️', anim: 'hover:scale-125' },
-                { img: '/stickers/rofl_shoes.png', name: 'ROFL Laugh 😂', anim: 'hover:scale-125' },
-                { img: '/stickers/tea_sip.png', name: 'Tea Time ☕', anim: 'hover:scale-125' }
+                { img: '/emojis/emoji-1.png', name: 'Grin Laugh 😆', anim: 'animate-emoji-wobble' },
+                { img: '/emojis/emoji-2.png', name: 'Angry Rage 😡', anim: 'animate-emoji-shake' },
+                { img: '/emojis/emoji-3.png', name: 'Bored Roll 🙄', anim: 'animate-emoji-bounce' },
+                { img: '/emojis/emoji-4.png', name: 'Crying Tears 😭', anim: 'animate-emoji-shake' },
+                { img: '/emojis/emoji-5.png', name: 'Nervous Teeth 😬', anim: 'animate-emoji-shake' },
+                { img: '/emojis/emoji-6.png', name: 'Sweat Wipe 😰', anim: 'animate-emoji-wobble' },
+                { img: '/emojis/emoji-7.png', name: 'Yawn Sleepy 🥱', anim: 'animate-emoji-bounce' },
+                { img: '/emojis/emoji-8.png', name: 'Wink Tongue 😜', anim: 'animate-emoji-wobble' },
+                { img: '/emojis/emoji-9.png', name: 'Budo King 👑', anim: 'animate-emoji-bounce' },
+                { img: '/emojis/emoji-10.png', name: 'Cool Dice 😎', anim: 'animate-emoji-pulse' },
+                { img: '/emojis/emoji-11.png', name: 'Heart Eyes 😍', anim: 'animate-emoji-pulse' },
+                { img: '/emojis/emoji-12.png', name: 'Puddle Cry 😢', anim: 'animate-emoji-shake' },
+                { img: '/stickers/rose_love.png', name: 'Rose Love 🌹', anim: 'animate-sticker-rose' },
+                { img: '/stickers/flex_beard.png', name: 'Flex Power 💪', anim: 'animate-sticker-flex' },
+                { img: '/stickers/king_crown.png', name: 'King Crown 👑', anim: 'animate-sticker-crown' },
+                { img: '/stickers/hurry_watch.png', name: 'Hurry Up! ⏱️', anim: 'animate-sticker-hurry' }
               ].map((stk) => (
                 <button
                   key={stk.img}
@@ -505,7 +520,7 @@ export default function GamePlay() {
                     sound.playClick();
                     handleSendChatSticker(stk.img);
                   }}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-slate-900/90 hover:bg-slate-800 p-0.5 flex items-center justify-center active:scale-90 transition-all border border-slate-800/70 group flex-shrink-0"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 p-0.5 flex items-center justify-center active:scale-90 transition-all border border-slate-800/70 group flex-shrink-0"
                   title={stk.name}
                 >
                   <img
@@ -513,7 +528,7 @@ export default function GamePlay() {
                     alt={stk.name}
                     loading="lazy"
                     decoding="async"
-                    className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform"
+                    className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-125 transition-transform"
                   />
                 </button>
               ))}

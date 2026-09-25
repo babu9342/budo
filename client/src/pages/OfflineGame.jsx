@@ -118,7 +118,7 @@ export default function OfflineGame() {
   // Roll Dice (1.6s animation matching Dice.jsx)
   const handleRollDice = (isAutoRoll = false) => {
     if (!engine || diceRolling) return;
-    const current = gameState.players[gameState.currentTurnIndex];
+    const current = engine.players[engine.currentTurnIndex];
     if (!isAutoRoll && current.isBot) return;
 
     // Clear roll timer immediately
@@ -144,8 +144,10 @@ export default function OfflineGame() {
         } else if (isAutoRoll && rollRes.validTokens && rollRes.validTokens.length > 0) {
           // If auto-roll and there are valid moves, auto-pick after viewing
           setTimeout(() => {
-            const bestToken = getBestAutoMove(rollRes.gameState, current.playerIndex, rollRes.diceValue);
+            const activePlayer = engine.players[engine.currentTurnIndex];
+            const bestToken = getBestAutoMove(rollRes.gameState, activePlayer.playerIndex, rollRes.diceValue);
             if (bestToken !== null) {
+              console.log(`[OfflineGame Auto-Move] Applying coin move to currentPlayer: ${activePlayer.username} (index: ${activePlayer.playerIndex}, id: ${activePlayer.userId}), moving tokenId: ${bestToken}`);
               handleSelectTokenDirect(rollRes.gameState, engine, bestToken);
             }
           }, 800);
@@ -157,6 +159,10 @@ export default function OfflineGame() {
   // Select and Move Token (direct with explicit refs for auto-move)
   const handleSelectTokenDirect = (currentState, eng, tokenId) => {
     if (!eng) return;
+    const currentTurn = eng.currentTurnIndex;
+    const currentPlayer = eng.players[currentTurn];
+    console.log(`[OfflineGame Coin Move] Current Player: ${currentPlayer?.username} (index: ${currentTurn}, id: ${currentPlayer?.userId}) -> applying move on tokenId: ${tokenId}`);
+    
     const moveRes = eng.moveToken(tokenId);
     if (moveRes) {
       setGameState(moveRes.gameState);
@@ -299,14 +305,19 @@ export default function OfflineGame() {
   useEffect(() => {
     if (!engine || !gameState || gameState.phase === 'GAME_OVER') return;
 
-    const currentPlayer = gameState.players[gameState.currentTurnIndex];
+    const currentTurn = engine.currentTurnIndex;
+    const currentPlayer = engine.players[currentTurn];
     if (currentPlayer && currentPlayer.isBot) {
       const timer1 = setTimeout(() => {
-        if (gameState.phase === 'WAITING_ROLL') {
+        if (engine.phase === 'WAITING_ROLL' && engine.currentTurnIndex === currentTurn) {
           setDiceRolling(true);
           sound.playDiceRoll();
 
           setTimeout(() => {
+            if (engine.currentTurnIndex !== currentTurn) {
+              setDiceRolling(false);
+              return;
+            }
             const rollRes = engine.rollDice();
             setDiceRolling(false);
             if (rollRes) {
@@ -320,13 +331,16 @@ export default function OfflineGame() {
                 }, 2000);
               } else if (rollRes.validTokens && rollRes.validTokens.length > 0) {
                 const timer2 = setTimeout(() => {
+                  if (engine.currentTurnIndex !== currentTurn) return;
+                  const activeBot = engine.players[engine.currentTurnIndex];
                   const bestToken = getBotMove(
                     engine.getState(),
-                    currentPlayer.playerIndex,
+                    activeBot.playerIndex,
                     rollRes.diceValue,
-                    currentPlayer.botDifficulty
+                    activeBot.botDifficulty
                   );
                   if (bestToken !== null) {
+                    console.log(`[OfflineGame Bot Move] Current Player: ${activeBot.username} (index: ${activeBot.playerIndex}, id: ${activeBot.userId}) -> applying move on tokenId: ${bestToken}`);
                     const moveRes = engine.moveToken(bestToken);
                     if (moveRes) {
                       setGameState(moveRes.gameState);
@@ -363,7 +377,7 @@ export default function OfflineGame() {
       }, 700);
       return () => clearTimeout(timer1);
     }
-  }, [engine, gameState]);
+  }, [engine, gameState?.currentTurnIndex, gameState?.phase]);
 
   if (!gameStarted) {
     return (
@@ -536,11 +550,22 @@ export default function OfflineGame() {
             <div className="w-px h-4 bg-slate-800/80 flex-shrink-0" />
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               {[
+                { img: '/emojis/emoji-1.png', name: 'Grin Laugh 😆' },
+                { img: '/emojis/emoji-2.png', name: 'Angry Rage 😡' },
+                { img: '/emojis/emoji-3.png', name: 'Bored Roll 🙄' },
+                { img: '/emojis/emoji-4.png', name: 'Crying Tears 😭' },
+                { img: '/emojis/emoji-5.png', name: 'Nervous Teeth 😬' },
+                { img: '/emojis/emoji-6.png', name: 'Sweat Wipe 😰' },
+                { img: '/emojis/emoji-7.png', name: 'Yawn Sleepy 🥱' },
+                { img: '/emojis/emoji-8.png', name: 'Wink Tongue 😜' },
+                { img: '/emojis/emoji-9.png', name: 'Budo King 👑' },
+                { img: '/emojis/emoji-10.png', name: 'Cool Dice 😎' },
+                { img: '/emojis/emoji-11.png', name: 'Heart Eyes 😍' },
+                { img: '/emojis/emoji-12.png', name: 'Puddle Cry 😢' },
+                { img: '/stickers/rose_love.png', name: 'Rose Love 🌹' },
                 { img: '/stickers/flex_beard.png', name: 'Flex Power 💪' },
                 { img: '/stickers/king_crown.png', name: 'King Crown 👑' },
-                { img: '/stickers/hurry_watch.png', name: 'Hurry Up! ⏱️' },
-                { img: '/stickers/rofl_shoes.png', name: 'ROFL Laugh 😂' },
-                { img: '/stickers/tea_sip.png', name: 'Tea Time ☕' }
+                { img: '/stickers/hurry_watch.png', name: 'Hurry Up! ⏱️' }
               ].map((stk) => (
                 <button
                   key={stk.img}
@@ -548,13 +573,14 @@ export default function OfflineGame() {
                     sound.playClick();
                     triggerSticker(stk.img, 0);
                   }}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-slate-900/90 hover:bg-slate-800 p-0.5 flex items-center justify-center active:scale-90 transition-all border border-slate-800/70 group flex-shrink-0"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900/90 hover:bg-slate-800 p-0.5 flex items-center justify-center active:scale-90 transition-all border border-slate-800/70 group flex-shrink-0"
                   title={stk.name}
                 >
                   <img
                     src={stk.img}
                     alt={stk.name}
-                    className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-110 transition-transform"
+                    loading="lazy"
+                    className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-125 transition-transform"
                   />
                 </button>
               ))}

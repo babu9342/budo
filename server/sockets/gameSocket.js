@@ -235,21 +235,22 @@ function checkAndTriggerBotTurn(io, roomId) {
               checkAndTriggerBotTurn(io, roomId);
             }
           }, 3600);
-        } else if (rollResult.validTokens && rollResult.validTokens.length > 0) {
-          // Bot waits for 1.6s dice roll to settle + 600ms contemplation before moving
           setTimeout(async () => {
             const activeGame = gameManager.getGame(roomId);
             if (!activeGame || activeGame.phase !== 'WAITING_MOVE') return;
+            const activeBot = activeGame.players[activeGame.currentTurnIndex];
+            if (!activeBot) return;
 
             const chosenTokenId = getBotMove(
               activeGame,
-              currentPlayer.playerIndex,
+              activeBot.playerIndex,
               activeGame.diceValue,
-              currentPlayer.botDifficulty || 'medium'
+              activeBot.botDifficulty || 'medium'
             );
 
             if (chosenTokenId !== null) {
-              const moveResult = await gameManager.moveToken(roomId, currentPlayer.userId, chosenTokenId);
+              console.log(`[Server Bot Move] Current Player: ${activeBot.username} (index: ${activeBot.playerIndex}, userId: ${activeBot.userId}) -> moving tokenId: ${chosenTokenId}`);
+              const moveResult = await gameManager.moveToken(roomId, activeBot.userId, chosenTokenId);
               const moveEventData = {
                 tokenId: chosenTokenId,
                 outcome: moveResult.outcome,
