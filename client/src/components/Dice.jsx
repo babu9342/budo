@@ -92,11 +92,11 @@ export default function Dice({
     onRoll();
   };
 
-  // Dynamic crisp pips styled for both center board and standalone views
+  // Dynamic 3D engraved pips styled with realistic cavity depth and polished highlights
   const renderDots = (val) => {
     const dotClasses = inCenter
-      ? "w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 rounded-full bg-[#F8FAFC] shadow-[0_0_6px_rgba(255,255,255,0.9),inset_0_1px_2px_rgba(0,0,0,0.6)]"
-      : "w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#F8FAFC] shadow-[0_0_8px_rgba(255,255,255,0.9),inset_0_2px_3px_rgba(0,0,0,0.5)]";
+      ? "w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 rounded-full dice-pip-white"
+      : "w-4 h-4 sm:w-5 sm:h-5 rounded-full dice-pip-white";
 
     switch (val) {
       case 1:
@@ -105,7 +105,7 @@ export default function Dice({
             <span
               className={`${
                 inCenter ? 'w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7' : 'w-7 h-7 sm:w-8 sm:h-8'
-              } rounded-full bg-red-500 shadow-[0_0_14px_rgba(239,68,68,1),inset_0_2px_4px_rgba(0,0,0,0.5)] animate-pulse`}
+              } rounded-full dice-pip-red animate-pulse`}
             />
           </div>
         );
@@ -140,7 +140,7 @@ export default function Dice({
             <span />
             <span className={dotClasses} />
             <span />
-            <span className={`${inCenter ? 'w-3 h-3 sm:w-4 sm:h-4' : 'w-5 h-5 sm:w-6 sm:h-6'} rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)]`} />
+            <span className={`${inCenter ? 'w-3.5 h-3.5 sm:w-4 sm:h-4' : 'w-5 h-5 sm:w-6 sm:h-6'} rounded-full dice-pip-red`} />
             <span />
             <span className={dotClasses} />
             <span />
@@ -172,10 +172,10 @@ export default function Dice({
       <div 
         className={`absolute -bottom-1 w-3/4 rounded-full transition-all duration-300 pointer-events-none ${
           isRollingActive
-            ? 'h-3 bg-black/60 blur-md scale-125 translate-y-2'
+            ? 'h-3 bg-black/70 blur-md scale-125 translate-y-2'
             : isLandingPop
-            ? 'h-2 bg-black/80 blur-xs scale-90 translate-y-0'
-            : 'h-1.5 bg-black/50 blur-[2px] scale-100'
+            ? 'h-2.5 bg-black/85 blur-xs scale-95 translate-y-0'
+            : 'h-1.5 bg-black/60 blur-[2px] scale-100'
         }`}
       />
 
@@ -183,31 +183,24 @@ export default function Dice({
         onClick={handleDiceClick}
         disabled={disabled || isRollingActive}
         aria-label="Roll Dice"
-        style={{
-          boxShadow: isLandingPop
-            ? `0 0 35px ${playerColor}, 0 0 16px #FFFFFF`
-            : !disabled
-            ? `0 0 24px ${playerColor}cc, 0 4px 16px rgba(0,0,0,0.85)`
-            : '0 2px 8px rgba(0,0,0,0.6)'
-        }}
         className={`relative ${
           inCenter
             ? 'w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl'
-            : 'w-24 h-24 sm:w-28 sm:h-28 rounded-2xl'
-        } bg-[#121214] border-2 transition-all duration-150 flex items-center justify-center cursor-pointer active:scale-90 ${
+            : 'w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl'
+        } dice-3d-cube border-2 transition-all duration-150 flex items-center justify-center cursor-pointer active:scale-90 ${
           hasEntered ? 'animate-dice-drop' : ''
         } ${
           isSixJump && !isRollingActive ? 'animate-dice-six-jump' : ''
         } ${
-          isLandingPop ? 'animate-dice-pop ring-2 sm:ring-4 ring-white' : ''
+          isLandingPop ? 'animate-dice-pop ring-2 sm:ring-4 ring-white/90' : ''
         } ${
           !disabled
-            ? 'border-white ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105 shadow-xl'
-            : 'border-slate-700/90 shadow-md'
+            ? 'ring-2 sm:ring-4 ring-amber-400/80 hover:scale-105'
+            : 'opacity-90'
         } ${isRollingActive ? 'animate-dice-roll ring-2 sm:ring-4 ring-amber-400' : ''}`}
       >
-        {/* Dice Face Container */}
-        <div className="w-full h-full overflow-hidden flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#1c1c20] via-[#121215] to-[#0a0a0c] shadow-inner relative border border-white/10 transition-transform duration-150">
+        {/* 3D Dice Face Bevel & Surface Inset */}
+        <div className="w-full h-full overflow-hidden flex items-center justify-center p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-[#262833]/90 via-[#181920]/95 to-[#0d0e12] shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.85)] relative border border-white/10 transition-transform duration-150">
           {renderDots(displayValue)}
         </div>
 
