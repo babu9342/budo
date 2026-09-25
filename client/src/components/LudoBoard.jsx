@@ -207,13 +207,12 @@ export default function LudoBoard({
 
   gameState.players.forEach((player, pIdx) => {
     player.tokens.forEach((actualStep, tokId) => {
-      const isCurrentPlayerTurn = gameState.currentTurnIndex === pIdx;
-      const isValid = isCurrentPlayerTurn && validTokens.includes(tokId);
+      const isCurrentPlayerTurn = gameState.currentTurnIndex === pIdx && gameState.phase === 'WAITING_MOVE';
       const key = `${pIdx}_${tokId}`;
-
       const displayedStep = animatingPositions[key] !== undefined ? animatingPositions[key] : actualStep;
       const isHopping = hoppingToken === key;
       const isCaptured = Boolean(capturedTokens[key]);
+      const isValid = isCurrentPlayerTurn && Array.isArray(validTokens) && validTokens.includes(tokId) && !isHopping && !isCaptured;
 
       const tokenObj = {
         playerIndex: pIdx,
@@ -469,6 +468,10 @@ function Classic4PlayerBoard({
 
   const gapBg = theme?.isPachisi ? '#5C2A00' : 'rgba(255, 255, 255, 0.08)';
 
+  const activeTimerSeconds = gameState.phase === 'WAITING_MOVE'
+    ? (moveTimer?.seconds ?? 6)
+    : (diceProps?.timerSeconds ?? 10);
+
   return (
     <div
       className={`w-full h-full relative grid grid-cols-15 grid-rows-15 rounded-2xl p-1 border ${theme.gridBorder} transition-transform duration-500 ease-out`}
@@ -501,6 +504,7 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === redPlayer?.playerIndex}
           moveTimer={moveTimer}
+          timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
         />
       </div>
@@ -533,6 +537,7 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === greenPlayer?.playerIndex}
           moveTimer={moveTimer}
+          timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
         />
       </div>
@@ -683,6 +688,7 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === bluePlayer?.playerIndex}
           moveTimer={moveTimer}
+          timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
         />
       </div>
@@ -715,6 +721,7 @@ function Classic4PlayerBoard({
           theme={theme}
           isCurrentTurn={gameState.currentTurnIndex === yellowPlayer?.playerIndex}
           moveTimer={moveTimer}
+          timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
         />
       </div>
@@ -725,7 +732,7 @@ function Classic4PlayerBoard({
 /**
  * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, counterRotation = 0 }) {
+function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, timerSeconds = 10, counterRotation = 0 }) {
   if (!player) {
     return (
       <div className="w-full h-full rounded-xl flex flex-col items-center justify-center"
@@ -747,19 +754,18 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
   const isDarkMode = theme.isDarkMode;
   const isPachisi = theme.isPachisi;
   const isMoveTimerActive = isCurrentTurn && moveTimer?.active;
-  const moveSeconds = moveTimer ? moveTimer.seconds : 6;
   const movePercent = moveTimer ? Math.max(0, (moveTimer.seconds / (moveTimer.total || 6)) * 100) : 100;
 
   if (isPachisi) {
     /* ── Pachisi Heritage HomeYard ─────────────────────────────────── */
     return (
       <div className="w-full h-full flex flex-col items-center justify-between relative p-1">
-        {/* Username badge + Turn Indicator */}
+        {/* Username badge + Turn & Timer Indicator */}
         <div
           className="w-full flex items-center justify-between px-0.5 z-10"
           style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
         >
-          <div className="flex items-center gap-1 max-w-[70%] truncate">
+          <div className="flex items-center gap-1 max-w-[65%] truncate">
             {isCurrentTurn && (
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
             )}
@@ -767,14 +773,12 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
               {player.username}
             </span>
           </div>
-          {isMoveTimerActive ? (
+          {isCurrentTurn ? (
             <span
-              className="text-[8px] md:text-[9px] font-mono font-black px-1 py-0.5 rounded-full text-white animate-pulse"
+              className="text-[8px] md:text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full text-white animate-pulse flex items-center gap-0.5"
               style={{ backgroundColor: colorHex }}
-            >⏱️ {moveSeconds}s</span>
-          ) : isCurrentTurn ? (
-            <span className="text-[8px] font-black px-1 rounded bg-amber-400 text-slate-950 animate-pulse">
-              TURN
+            >
+              ⏱️ {timerSeconds}s
             </span>
           ) : (
             <span className="w-2 h-2 rounded-full ring-1 ring-white/60" style={{ backgroundColor: colorHex }} />
@@ -864,7 +868,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
         <div className="absolute top-1 left-1 text-[12px] opacity-70 select-none">🪷</div>
       )}
 
-      {/* Header with Username, Active Turn Glow & Move Timer Badge */}
+      {/* Header with Username, Active Turn Glow & Timer Badge */}
       <div
         className="w-full flex items-center justify-between px-1 z-10"
         style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
@@ -877,18 +881,12 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
             {player.username}
           </span>
         </div>
-        {isMoveTimerActive ? (
+        {isCurrentTurn ? (
           <span
             className="text-[9px] md:text-[10px] font-mono font-black px-1.5 py-0.5 rounded-full text-white animate-pulse shadow-md flex items-center gap-0.5"
             style={{ backgroundColor: colorHex, boxShadow: `0 0 10px ${colorHex}` }}
           >
-            ⏱️ {moveSeconds}s
-          </span>
-        ) : isCurrentTurn ? (
-          <span
-            className="text-[8px] md:text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 animate-pulse shadow-md"
-          >
-            TURN
+            ⏱️ {timerSeconds}s
           </span>
         ) : (
           <span
@@ -1105,6 +1103,9 @@ function RadialMultiPlayerBoard({
   myPlayerIndex = null
 }) {
   const baseOffset = (myPlayerIndex !== null && myPlayerIndex !== undefined && myPlayerIndex >= 0) ? myPlayerIndex : 0;
+  const activeTimerSeconds = gameState.phase === 'WAITING_MOVE'
+    ? (moveTimer?.seconds ?? 6)
+    : (diceProps?.timerSeconds ?? 10);
 
   return (
     <div className="w-full h-full relative flex items-center justify-center p-2">
@@ -1164,9 +1165,16 @@ function RadialMultiPlayerBoard({
                 boxShadow: isCurrentTurn ? `0 0 20px ${player.color.hex}` : undefined
               }}
             >
-              <span className="text-[9px] font-black text-white truncate max-w-[50px]">
-                {player.username}
-              </span>
+              <div className="flex items-center gap-0.5 justify-center w-full">
+                <span className="text-[9px] font-black text-white truncate max-w-[42px]">
+                  {player.username}
+                </span>
+                {isCurrentTurn && (
+                  <span className="text-[8px] font-mono font-black text-amber-300 animate-pulse">
+                    ⏱️{activeTimerSeconds}s
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-1 mt-1">
                 {(homeBases[pIdx] || []).map((tok, tIdx) => (
                   <Token

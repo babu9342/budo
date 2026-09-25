@@ -486,7 +486,7 @@ export default function OfflineGame() {
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-budo-bg flex flex-col items-center select-none overflow-hidden justify-between">
       {/* Header */}
-      <header className="w-full max-w-md md:max-w-2xl px-3 py-1.5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
+      <header className="w-full max-w-md md:max-w-2xl px-3 py-2 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md flex-shrink-0">
         <button
           onClick={() => { sound.playClick(); setGameStarted(false); }}
           className="p-1.5 rounded-xl bg-slate-900 text-slate-400 border border-slate-800 hover:text-white"
@@ -495,12 +495,8 @@ export default function OfflineGame() {
         </button>
 
         <div className="text-center flex flex-col items-center">
-          <div className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-widest text-purple-400">
-            <span>Offline Match ({difficulty.toUpperCase()})</span>
-          </div>
-          <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
-            {isHumanTurn && <span className="animate-ping w-2 h-2 rounded-full bg-amber-400 inline-block" />}
-            <span>{currentPlayer?.username}'s Turn</span>
+          <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-purple-400">
+            <span>🎲 Offline Match ({difficulty.toUpperCase()})</span>
           </div>
         </div>
 
@@ -523,20 +519,6 @@ export default function OfflineGame() {
           </button>
         </div>
       </header>
-
-      {/* Compact Players Strip */}
-      <div className="w-full max-w-md md:max-w-2xl px-2 pt-1 grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-shrink-0">
-        {gameState.players.map((p, idx) => (
-          <PlayerCard
-            key={idx}
-            player={p}
-            isCurrentTurn={gameState.currentTurnIndex === idx}
-            compact={true}
-            remainingSeconds={remainingSeconds}
-            moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive && gameState.currentTurnIndex === idx }}
-          />
-        ))}
-      </div>
 
       {/* Main Board Arena with Embedded Center Dice, Constant Left/Right Emoji & Reactions Controls */}
       <main className="w-full max-w-md md:max-w-2xl flex-1 flex flex-col items-center justify-center p-1 md:p-2 min-h-0 overflow-hidden relative">
@@ -584,7 +566,7 @@ export default function OfflineGame() {
             <LudoBoard
               gameState={gameState}
               onSelectToken={handleSelectToken}
-              validTokens={isHumanTurn ? gameState.validMoves : []}
+              validTokens={isHumanTurn && gameState.phase === 'WAITING_MOVE' ? (gameState.validMoves || []) : []}
               themeName={themeName}
               moveTimer={{ seconds: moveTimerSeconds, total: 6, active: moveTimerActive }}
               myPlayerIndex={gameMode === 'local_pass' ? gameState.currentTurnIndex : 0}
