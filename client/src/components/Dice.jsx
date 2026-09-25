@@ -18,6 +18,7 @@ export default function Dice({
   const [hasEntered, setHasEntered] = useState(false);
   const [isSixJump, setIsSixJump] = useState(false);
   const [showCoinEntry, setShowCoinEntry] = useState(false);
+  const [tumbleVars, setTumbleVars] = useState({});
   const prevDisabledRef = useRef(disabled);
   const sixJumpTimeoutRef = useRef(null);
   const coinEntryTimeoutRef = useRef(null);
@@ -44,6 +45,33 @@ export default function Dice({
       setIsLandingPop(false);
       setShowCoinEntry(false);
       setIsSixJump(false);
+
+      // Generate randomized 3D tumbling angles for physical realistic roll path
+      const randOffsetX = (Math.random() - 0.5) * 60;
+      const randOffsetY = (Math.random() - 0.5) * 60;
+      const randOffsetZ = (Math.random() - 0.5) * 40;
+
+      setTumbleVars({
+        '--tumble-rot-x': `${720 + randOffsetX}deg`,
+        '--tumble-rot-y': `${1080 + randOffsetY}deg`,
+        '--tumble-rot-z': `${360 + randOffsetZ}deg`,
+        '--tumble-x1': `${160 + (Math.random() - 0.5) * 40}deg`,
+        '--tumble-y1': `${210 + (Math.random() - 0.5) * 40}deg`,
+        '--tumble-z1': `${45 + (Math.random() - 0.5) * 30}deg`,
+        '--tumble-x2': `${380 + (Math.random() - 0.5) * 50}deg`,
+        '--tumble-y2': `${520 + (Math.random() - 0.5) * 50}deg`,
+        '--tumble-z2': `${-65 + (Math.random() - 0.5) * 30}deg`,
+        '--tumble-x3': `${560 + (Math.random() - 0.5) * 40}deg`,
+        '--tumble-y3': `${780 + (Math.random() - 0.5) * 40}deg`,
+        '--tumble-z3': `${120 + (Math.random() - 0.5) * 30}deg`,
+        '--tumble-x4': `${680 + (Math.random() - 0.5) * 30}deg`,
+        '--tumble-y4': `${990 + (Math.random() - 0.5) * 30}deg`,
+        '--tumble-z4': `${-25 + (Math.random() - 0.5) * 20}deg`,
+        '--tumble-x5': `${715 + (Math.random() - 0.5) * 15}deg`,
+        '--tumble-y5': `${1070 + (Math.random() - 0.5) * 15}deg`,
+        '--tumble-z5': `${8 + (Math.random() - 0.5) * 10}deg`
+      });
+
       sound.playDiceRoll();
       triggerHaptic('medium');
 
@@ -56,6 +84,7 @@ export default function Dice({
         clearInterval(interval);
         setInternalRoll(false);
         if (value) setDisplayValue(value);
+        setTumbleVars({});
 
         // Smooth landing settle bounce
         setIsLandingPop(true);
@@ -182,6 +211,7 @@ export default function Dice({
       <button
         onClick={handleDiceClick}
         disabled={disabled || isRollingActive}
+        style={tumbleVars}
         aria-label="Roll Dice"
         className={`dice ${isRollingActive ? 'rolling' : ''} relative ${
           inCenter
