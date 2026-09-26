@@ -453,7 +453,7 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored in the 4 corners of the board container)
+  // 4 Constant Corner Boxes Configuration (Anchored cleanly in the 4 extreme outer corners of each player's home panel)
   const CORNER_BOXES = [
     {
       id: 'red',
@@ -461,7 +461,7 @@ function Classic4PlayerBoard({
       name: 'Red',
       player: redPlayer,
       colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '0.8%', left: '0.8%' },
+      pos: { top: '1.2%', left: '1.2%' },
       anchor: 'translate(0%, 0%)'
     },
     {
@@ -470,7 +470,7 @@ function Classic4PlayerBoard({
       name: 'Green',
       player: greenPlayer,
       colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '0.8%', left: '99.2%' },
+      pos: { top: '1.2%', left: '98.8%' },
       anchor: 'translate(-100%, 0%)'
     },
     {
@@ -479,7 +479,7 @@ function Classic4PlayerBoard({
       name: 'Yellow',
       player: yellowPlayer,
       colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '99.2%', left: '99.2%' },
+      pos: { top: '98.8%', left: '98.8%' },
       anchor: 'translate(-100%, -100%)'
     },
     {
@@ -488,7 +488,7 @@ function Classic4PlayerBoard({
       name: 'Blue',
       player: bluePlayer,
       colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '99.2%', left: '0.8%' },
+      pos: { top: '98.8%', left: '1.2%' },
       anchor: 'translate(0%, -100%)'
     }
   ];
