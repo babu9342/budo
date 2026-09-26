@@ -451,7 +451,7 @@ html, body {
 
 .animate-yard-pulse {
   animation: yardPulse 1.05s infinite ease-in-out;
-  z-index: 25 !important;
+  z-index: 10 !important;
 }
 
 /* Animated Arrow indicator for active player panel */

@@ -11,7 +11,8 @@ export default function Token({
   onClick,
   stackCount = 1,
   size = 'md',
-  counterRotation = 0
+  counterRotation = 0,
+  showArrow = true
 }) {
   const handleClick = (e) => {
     e.stopPropagation();
@@ -52,8 +53,8 @@ export default function Token({
         height: size === 'sm' ? '22px' : '28px'
       }}
     >
-      {/* Large Glowing Move Indicator Arrow (2x Size, Bright Yellow/White with Dark Outline & 800ms Pulse) */}
-      {isValidMove && !isHopping && !isCaptured && (
+      {/* Large Glowing Move Indicator Arrow (Only shown on track when showArrow is true) */}
+      {showArrow && isValidMove && !isHopping && !isCaptured && (
         <div
           className="absolute -top-8 sm:-top-9 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-indicator-pulse flex flex-col items-center origin-bottom"
           style={counterRotation ? { transform: `translateX(-50%) rotate(${-counterRotation}deg)` } : undefined}

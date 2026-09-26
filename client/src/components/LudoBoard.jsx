@@ -633,66 +633,6 @@ function Classic4PlayerBoard({
         </div>
       </div>
 
-      {/* 4 CONSTANT CORNER DICE BOXES (Fixed, always visible, non-moving) */}
-      {CORNER_BOXES.map((box) => {
-        const isCurrentTurnBox = turnColor === box.key;
-        return (
-          <div
-            key={box.id}
-            className={`absolute z-20 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
-              isCurrentTurnBox
-                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
-            }`}
-            style={{
-              top: box.pos.top,
-              left: box.pos.left,
-              borderColor: isCurrentTurnBox ? box.colorHex : 'rgba(255,255,255,0.12)',
-              boxShadow: isCurrentTurnBox
-                ? `0 0 20px ${box.colorHex}88, inset 0 0 10px ${box.colorHex}44`
-                : undefined,
-              transform: box.anchor
-            }}
-          >
-            {/* Empty Box Placeholder when dice is in another corner */}
-            {!isCurrentTurnBox && (
-              <div
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
-                style={{ borderColor: box.colorHex }}
-              >
-                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies between the 4 fixed boxes (450ms) */}
-      {diceProps && (
-        <div 
-          className={`absolute z-20 flex items-center justify-center ${
-            diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
-          }`}
-          style={{
-            top: activeBoxPos.top,
-            left: activeBoxPos.left,
-            transform: activeBox.anchor,
-            transition: 'top 450ms cubic-bezier(0.34, 1.56, 0.64, 1), left 450ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}
-        >
-          <Dice
-            value={diceProps.value}
-            isRolling={diceProps.isRolling}
-            disabled={diceProps.disabled}
-            onRoll={diceProps.onRoll}
-            playerColor={diceProps.playerColor || activeBoxColor}
-            timerSeconds={diceProps.timerSeconds}
-            isUrgent={diceProps.isUrgent}
-            inCenter={true}
-          />
-        </div>
-      )}
-
       {/* 6. MIDDLE-RIGHT: Right Runway Track (rows 6-8, cols 9-14) */}
       <div className="col-span-6 row-span-3 grid grid-cols-6 grid-rows-3" style={{ gap: '1px', backgroundColor: gapBg }}>
         {renderSubGrid(6, 8, 9, 14, trackCoordMap, homeStretchMap, cellOccupants, safeTrackIndices, onSelectToken, theme, gameState.players, boardRotation)}
@@ -758,6 +698,66 @@ function Classic4PlayerBoard({
           counterRotation={boardRotation}
         />
       </div>
+
+      {/* 4 CONSTANT CORNER DICE BOXES (Fixed, always visible, non-moving on top of board) */}
+      {CORNER_BOXES.map((box) => {
+        const isCurrentTurnBox = turnColor === box.key;
+        return (
+          <div
+            key={box.id}
+            className={`absolute z-40 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
+              isCurrentTurnBox
+                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
+                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
+            }`}
+            style={{
+              top: box.pos.top,
+              left: box.pos.left,
+              borderColor: isCurrentTurnBox ? box.colorHex : 'rgba(255,255,255,0.12)',
+              boxShadow: isCurrentTurnBox
+                ? `0 0 20px ${box.colorHex}88, inset 0 0 10px ${box.colorHex}44`
+                : undefined,
+              transform: box.anchor
+            }}
+          >
+            {/* Empty Box Placeholder when dice is in another corner */}
+            {!isCurrentTurnBox && (
+              <div
+                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
+                style={{ borderColor: box.colorHex }}
+              >
+                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies on TOP (z-50) between the 4 fixed boxes (450ms) */}
+      {diceProps && (
+        <div 
+          className={`absolute z-50 flex items-center justify-center ${
+            diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
+          }`}
+          style={{
+            top: activeBoxPos.top,
+            left: activeBoxPos.left,
+            transform: activeBox.anchor,
+            transition: 'top 450ms cubic-bezier(0.34, 1.56, 0.64, 1), left 450ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}
+        >
+          <Dice
+            value={diceProps.value}
+            isRolling={diceProps.isRolling}
+            disabled={diceProps.disabled}
+            onRoll={diceProps.onRoll}
+            playerColor={diceProps.playerColor || activeBoxColor}
+            timerSeconds={diceProps.timerSeconds}
+            isUrgent={diceProps.isUrgent}
+            inCenter={true}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -862,6 +862,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
                       onClick={() => onSelectToken(token.tokenId)}
                       size="sm"
                       counterRotation={counterRotation}
+                      showArrow={false}
                     />
                   )}
                 </div>
@@ -975,6 +976,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
                     onClick={() => onSelectToken(token.tokenId)}
                     size="sm"
                     counterRotation={counterRotation}
+                    showArrow={false}
                   />
                 )}
               </div>
@@ -1142,7 +1144,7 @@ function RadialMultiPlayerBoard({
   return (
     <div className="w-full h-full relative flex items-center justify-center p-2">
       {/* Central Finish & Dice Hub */}
-      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-950 border-4 border-amber-400/90 shadow-2xl flex flex-col items-center justify-center z-20 p-1 relative overflow-hidden">
+      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-950 border-4 border-amber-400/90 shadow-2xl flex flex-col items-center justify-center z-50 p-1 relative overflow-hidden">
         {diceProps ? (
           <Dice
             value={diceProps.value}
@@ -1217,6 +1219,7 @@ function RadialMultiPlayerBoard({
                     isCaptured={tok.isCaptured}
                     onClick={() => onSelectToken(tok.tokenId)}
                     size="sm"
+                    showArrow={false}
                   />
                 ))}
               </div>

@@ -204,7 +204,7 @@ export default function Dice({
   const isRollingActive = internalRoll || isRolling;
 
   return (
-    <div className={`dice-container flex flex-col items-center justify-center select-none relative z-20 ${
+    <div className={`dice-container flex flex-col items-center justify-center select-none relative z-50 ${
       disabled || isRollingActive ? 'pointer-events-none' : 'pointer-events-auto'
     }`}>
       {/* Ground Elevation Shadow Floor */}
