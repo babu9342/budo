@@ -208,25 +208,25 @@ html, body {
 
 /* Base sizing variables for responsive cube dimensions */
 .dice-cube-incenter {
-  --dice-size: 56px;
-  --dice-half: 28px;
-  width: 56px;
-  height: 56px;
+  --dice-size: 38px;
+  --dice-half: 19px;
+  width: 38px;
+  height: 38px;
 }
 @media (min-width: 640px) {
   .dice-cube-incenter {
-    --dice-size: 64px;
-    --dice-half: 32px;
-    width: 64px;
-    height: 64px;
+    --dice-size: 46px;
+    --dice-half: 23px;
+    width: 46px;
+    height: 46px;
   }
 }
 @media (min-width: 768px) {
   .dice-cube-incenter {
-    --dice-size: 76px;
-    --dice-half: 38px;
-    width: 76px;
-    height: 76px;
+    --dice-size: 54px;
+    --dice-half: 27px;
+    width: 54px;
+    height: 54px;
   }
 }
 
@@ -405,6 +405,25 @@ html, body {
 
 .animate-coin-entry {
   animation: coinEntryFlash 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Movable Token Blinking & Pulsing Highlight (Issue 1) */
+@keyframes coinBlinkPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow: 0 0 10px 3px rgba(250, 204, 21, 0.7);
+  }
+  50% {
+    transform: scale(1.18);
+    filter: brightness(1.35) drop-shadow(0 0 6px rgba(250, 204, 21, 0.95));
+    box-shadow: 0 0 20px 6px rgba(250, 204, 21, 1), 0 0 32px 10px rgba(250, 204, 21, 0.7);
+  }
+}
+
+.animate-token-blink {
+  animation: coinBlinkPulse 0.75s ease-in-out infinite;
+  will-change: transform, filter;
 }
 
 /* Coin entry glow ring pulse (GPU-accelerated) */

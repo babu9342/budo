@@ -453,49 +453,10 @@ function Classic4PlayerBoard({
     }
   }
 
-  // 4 Constant Corner Boxes Configuration (Anchored cleanly in the 4 extreme outer corners of each player's home panel)
-  const CORNER_BOXES = [
-    {
-      id: 'red',
-      key: 'red',
-      name: 'Red',
-      player: redPlayer,
-      colorHex: redPlayer?.color?.hex || '#EF4444',
-      pos: { top: '1.2%', left: '1.2%' },
-      anchor: 'translate(0%, 0%)'
-    },
-    {
-      id: 'green',
-      key: 'green',
-      name: 'Green',
-      player: greenPlayer,
-      colorHex: greenPlayer?.color?.hex || '#10B981',
-      pos: { top: '1.2%', left: '98.8%' },
-      anchor: 'translate(-100%, 0%)'
-    },
-    {
-      id: 'yellow',
-      key: 'yellow',
-      name: 'Yellow',
-      player: yellowPlayer,
-      colorHex: yellowPlayer?.color?.hex || '#F59E0B',
-      pos: { top: '98.8%', left: '98.8%' },
-      anchor: 'translate(-100%, -100%)'
-    },
-    {
-      id: 'blue',
-      key: 'blue',
-      name: 'Blue',
-      player: bluePlayer,
-      colorHex: bluePlayer?.color?.hex || '#3B82F6',
-      pos: { top: '98.8%', left: '1.2%' },
-      anchor: 'translate(0%, -100%)'
-    }
-  ];
-
-  const activeBox = CORNER_BOXES.find(b => b.key === turnColor) || CORNER_BOXES[0];
-  const activeBoxPos = activeBox.pos;
-  const activeBoxColor = activeBox.colorHex;
+  const isRedTurn = redPlayer && gameState.currentTurnIndex === redPlayer.playerIndex;
+  const isGreenTurn = greenPlayer && gameState.currentTurnIndex === greenPlayer.playerIndex;
+  const isYellowTurn = yellowPlayer && gameState.currentTurnIndex === yellowPlayer.playerIndex;
+  const isBlueTurn = bluePlayer && gameState.currentTurnIndex === bluePlayer.playerIndex;
 
   const gapBg = theme?.isPachisi ? '#5C2A00' : 'rgba(255, 255, 255, 0.08)';
 
@@ -514,15 +475,30 @@ function Classic4PlayerBoard({
     >
       {/* 1. TOP-LEFT: Red Home Yard (rows 0-5, cols 0-5) */}
       <div className={`col-span-6 row-span-6 ${theme.redYard} rounded-tl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
-        gameState.currentTurnIndex === redPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+        isRedTurn ? 'animate-yard-pulse' : ''
       }`}
         style={{
           borderColor: redPlayer?.color?.hex || '#EF4444',
           '--yard-glow-color': redPlayer?.color?.hex || '#EF4444',
-          boxShadow: gameState.currentTurnIndex === redPlayer?.playerIndex
+          boxShadow: isRedTurn
             ? `0 0 24px ${redPlayer?.color?.hex || '#EF4444'}, inset 0 0 16px ${redPlayer?.color?.hex || '#EF4444'}55`
             : undefined
         }}>
+        {/* Dice placed in Literal Top-Left Corner (Issue 2) */}
+        {diceProps && isRedTurn && (
+          <div className="absolute top-2 left-2 z-50 pointer-events-auto">
+            <Dice
+              value={diceProps.value}
+              isRolling={diceProps.isRolling}
+              disabled={diceProps.disabled}
+              onRoll={diceProps.onRoll}
+              playerColor={redPlayer?.color?.hex || '#EF4444'}
+              timerSeconds={diceProps.timerSeconds}
+              isUrgent={diceProps.isUrgent}
+              inCenter={true}
+            />
+          </div>
+        )}
         {theme.isPachisi && (
           <div className="absolute top-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -533,7 +509,7 @@ function Classic4PlayerBoard({
           tokens={redTokens}
           onSelectToken={onSelectToken}
           theme={theme}
-          isCurrentTurn={gameState.currentTurnIndex === redPlayer?.playerIndex}
+          isCurrentTurn={isRedTurn}
           moveTimer={moveTimer}
           timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
@@ -547,15 +523,30 @@ function Classic4PlayerBoard({
 
       {/* 3. TOP-RIGHT: Green Home Yard (rows 0-5, cols 9-14) */}
       <div className={`col-span-6 row-span-6 ${theme.greenYard} rounded-tr-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
-        gameState.currentTurnIndex === greenPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+        isGreenTurn ? 'animate-yard-pulse' : ''
       }`}
         style={{
           borderColor: greenPlayer?.color?.hex || '#10B981',
           '--yard-glow-color': greenPlayer?.color?.hex || '#10B981',
-          boxShadow: gameState.currentTurnIndex === greenPlayer?.playerIndex
+          boxShadow: isGreenTurn
             ? `0 0 24px ${greenPlayer?.color?.hex || '#10B981'}, inset 0 0 16px ${greenPlayer?.color?.hex || '#10B981'}55`
             : undefined
         }}>
+        {/* Dice placed in Literal Top-Right Corner (Issue 2) */}
+        {diceProps && isGreenTurn && (
+          <div className="absolute top-2 right-2 z-50 pointer-events-auto">
+            <Dice
+              value={diceProps.value}
+              isRolling={diceProps.isRolling}
+              disabled={diceProps.disabled}
+              onRoll={diceProps.onRoll}
+              playerColor={greenPlayer?.color?.hex || '#10B981'}
+              timerSeconds={diceProps.timerSeconds}
+              isUrgent={diceProps.isUrgent}
+              inCenter={true}
+            />
+          </div>
+        )}
         {theme.isPachisi && (
           <div className="absolute top-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -566,7 +557,7 @@ function Classic4PlayerBoard({
           tokens={greenTokens}
           onSelectToken={onSelectToken}
           theme={theme}
-          isCurrentTurn={gameState.currentTurnIndex === greenPlayer?.playerIndex}
+          isCurrentTurn={isGreenTurn}
           moveTimer={moveTimer}
           timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
@@ -640,15 +631,30 @@ function Classic4PlayerBoard({
 
       {/* 7. BOTTOM-LEFT: Blue Home Yard (rows 9-14, cols 0-5) */}
       <div className={`col-span-6 row-span-6 ${theme.blueYard} rounded-bl-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
-        gameState.currentTurnIndex === bluePlayer?.playerIndex ? 'animate-yard-pulse' : ''
+        isBlueTurn ? 'animate-yard-pulse' : ''
       }`}
         style={{
           borderColor: bluePlayer?.color?.hex || '#3B82F6',
           '--yard-glow-color': bluePlayer?.color?.hex || '#3B82F6',
-          boxShadow: gameState.currentTurnIndex === bluePlayer?.playerIndex
+          boxShadow: isBlueTurn
             ? `0 0 24px ${bluePlayer?.color?.hex || '#3B82F6'}, inset 0 0 16px ${bluePlayer?.color?.hex || '#3B82F6'}55`
             : undefined
         }}>
+        {/* Dice placed in Literal Bottom-Left Corner (Issue 2) */}
+        {diceProps && isBlueTurn && (
+          <div className="absolute bottom-2 left-2 z-50 pointer-events-auto">
+            <Dice
+              value={diceProps.value}
+              isRolling={diceProps.isRolling}
+              disabled={diceProps.disabled}
+              onRoll={diceProps.onRoll}
+              playerColor={bluePlayer?.color?.hex || '#3B82F6'}
+              timerSeconds={diceProps.timerSeconds}
+              isUrgent={diceProps.isUrgent}
+              inCenter={true}
+            />
+          </div>
+        )}
         {theme.isPachisi && (
           <div className="absolute bottom-1 right-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -659,7 +665,7 @@ function Classic4PlayerBoard({
           tokens={blueTokens}
           onSelectToken={onSelectToken}
           theme={theme}
-          isCurrentTurn={gameState.currentTurnIndex === bluePlayer?.playerIndex}
+          isCurrentTurn={isBlueTurn}
           moveTimer={moveTimer}
           timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
@@ -673,15 +679,30 @@ function Classic4PlayerBoard({
 
       {/* 9. BOTTOM-RIGHT: Yellow Home Yard (rows 9-14, cols 9-14) */}
       <div className={`col-span-6 row-span-6 ${theme.yellowYard} rounded-br-xl p-1.5 md:p-2 flex items-center justify-center border-4 relative transition-all duration-300 ${
-        gameState.currentTurnIndex === yellowPlayer?.playerIndex ? 'animate-yard-pulse' : ''
+        isYellowTurn ? 'animate-yard-pulse' : ''
       }`}
         style={{
           borderColor: yellowPlayer?.color?.hex || '#EAB308',
           '--yard-glow-color': yellowPlayer?.color?.hex || '#EAB308',
-          boxShadow: gameState.currentTurnIndex === yellowPlayer?.playerIndex
+          boxShadow: isYellowTurn
             ? `0 0 24px ${yellowPlayer?.color?.hex || '#EAB308'}, inset 0 0 16px ${yellowPlayer?.color?.hex || '#EAB308'}55`
             : undefined
         }}>
+        {/* Dice placed in Literal Bottom-Right Corner (Issue 2) */}
+        {diceProps && isYellowTurn && (
+          <div className="absolute bottom-2 right-2 z-50 pointer-events-auto">
+            <Dice
+              value={diceProps.value}
+              isRolling={diceProps.isRolling}
+              disabled={diceProps.disabled}
+              onRoll={diceProps.onRoll}
+              playerColor={yellowPlayer?.color?.hex || '#EAB308'}
+              timerSeconds={diceProps.timerSeconds}
+              isUrgent={diceProps.isUrgent}
+              inCenter={true}
+            />
+          </div>
+        )}
         {theme.isPachisi && (
           <div className="absolute bottom-1 left-1 text-[10px] opacity-60 select-none">🪷</div>
         )}
@@ -692,72 +713,12 @@ function Classic4PlayerBoard({
           tokens={yellowTokens}
           onSelectToken={onSelectToken}
           theme={theme}
-          isCurrentTurn={gameState.currentTurnIndex === yellowPlayer?.playerIndex}
+          isCurrentTurn={isYellowTurn}
           moveTimer={moveTimer}
           timerSeconds={activeTimerSeconds}
           counterRotation={boardRotation}
         />
       </div>
-
-      {/* 4 CONSTANT CORNER DICE BOXES (Fixed, always visible, non-moving on top of board) */}
-      {CORNER_BOXES.map((box) => {
-        const isCurrentTurnBox = turnColor === box.key;
-        return (
-          <div
-            key={box.id}
-            className={`absolute z-40 pointer-events-none flex items-center justify-center rounded-2xl transition-all duration-300 ${
-              isCurrentTurnBox
-                ? 'w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-slate-950/90 border-2 shadow-2xl'
-                : 'w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-slate-950/40 border border-slate-800/60 opacity-40'
-            }`}
-            style={{
-              top: box.pos.top,
-              left: box.pos.left,
-              borderColor: isCurrentTurnBox ? box.colorHex : 'rgba(255,255,255,0.12)',
-              boxShadow: isCurrentTurnBox
-                ? `0 0 20px ${box.colorHex}88, inset 0 0 10px ${box.colorHex}44`
-                : undefined,
-              transform: box.anchor
-            }}
-          >
-            {/* Empty Box Placeholder when dice is in another corner */}
-            {!isCurrentTurnBox && (
-              <div
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-dashed flex items-center justify-center opacity-30"
-                style={{ borderColor: box.colorHex }}
-              >
-                <span className="text-[10px]" style={{ color: box.colorHex }}>🎲</span>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* 🎲 SINGLE TRAVELING DICE: Smoothly glides & flies on TOP (z-50) between the 4 fixed boxes (450ms) */}
-      {diceProps && (
-        <div 
-          className={`absolute z-50 flex items-center justify-center ${
-            diceProps.disabled ? 'pointer-events-none' : 'pointer-events-auto'
-          }`}
-          style={{
-            top: activeBoxPos.top,
-            left: activeBoxPos.left,
-            transform: activeBox.anchor,
-            transition: 'top 450ms cubic-bezier(0.34, 1.56, 0.64, 1), left 450ms cubic-bezier(0.34, 1.56, 0.64, 1), transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}
-        >
-          <Dice
-            value={diceProps.value}
-            isRolling={diceProps.isRolling}
-            disabled={diceProps.disabled}
-            onRoll={diceProps.onRoll}
-            playerColor={diceProps.playerColor || activeBoxColor}
-            timerSeconds={diceProps.timerSeconds}
-            isUrgent={diceProps.isUrgent}
-            inCenter={true}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -820,7 +781,7 @@ const HomeYard = React.memo(function HomeYard({ colorHex, colorName, player, tok
 
         {/* Ivory inner square with thick colored border & 2x2 token grid */}
         <div
-          className="w-[84%] aspect-square flex items-center justify-center relative shadow-lg"
+          className="w-[72%] sm:w-[74%] aspect-square flex items-center justify-center relative shadow-lg my-auto"
           style={{
             backgroundColor: '#FAF0DC',
             border: `3px solid ${colorHex}`,
@@ -932,7 +893,7 @@ const HomeYard = React.memo(function HomeYard({ colorHex, colorName, player, tok
 
       {/* Inset Base Square with Diamond Pips & 2x2 Token Bases (Sleek Dark Glassmorphic with Soft Shadow) */}
       <div
-        className="w-[82%] aspect-square rounded-xl shadow-2xl border flex items-center justify-center relative p-1 transition-all bg-slate-950/70 border-white/10 shadow-black/80"
+        className="w-[72%] sm:w-[74%] aspect-square rounded-xl shadow-2xl border flex items-center justify-center relative p-1 transition-all bg-slate-950/70 border-white/10 shadow-black/80 my-auto"
         style={isCurrentTurn ? {
           boxShadow: `0 0 16px ${colorHex}66, inset 0 0 10px ${colorHex}22`,
           borderColor: `${colorHex}99`
@@ -940,7 +901,7 @@ const HomeYard = React.memo(function HomeYard({ colorHex, colorName, player, tok
       >
         {/* Rotated Diamond Background */}
         <div
-          className="w-[74%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
+          className="w-[72%] aspect-square rounded-lg rotate-45 border-2 flex items-center justify-center transition-all"
           style={{
             borderColor: `${colorHex}55`,
             backgroundColor: `${colorHex}15`,
@@ -1095,24 +1056,75 @@ function renderSubGrid(
             >{markerText}</span>
           )}
 
-          {/* Occupant Tokens */}
-          {occupants.length > 0 && (
-            <div className="flex items-center justify-center">
-              {occupants.map((occ, idx) => (
-                <div key={idx} className={idx > 0 ? '-ml-3 z-20' : 'z-10'}>
-                  <Token
-                    color={occ.color}
-                    isValidMove={occ.isValid}
-                    isHopping={occ.isHopping}
-                    isCaptured={occ.isCaptured}
-                    onClick={() => onSelectToken(occ.tokenId)}
-                    stackCount={occupants.length}
-                    size="sm"
-                    counterRotation={counterRotation}
-                  />
-                </div>
-              ))}
+          {/* Occupant Tokens with Clean Stack Layout & Badge */}
+          {occupants.length === 1 && (
+            <div className="flex items-center justify-center w-full h-full">
+              <Token
+                color={occupants[0].color}
+                isValidMove={occupants[0].isValid}
+                isHopping={occupants[0].isHopping}
+                isCaptured={occupants[0].isCaptured}
+                onClick={() => onSelectToken(occupants[0].tokenId)}
+                size="sm"
+                counterRotation={counterRotation}
+              />
             </div>
+          )}
+
+          {occupants.length === 2 && (
+            <>
+              {/* Stack Count Badge at cell top-right corner */}
+              <span
+                className="absolute -top-1 -right-1 z-30 min-w-[14px] h-[14px] px-0.5 bg-slate-950 text-amber-300 text-[8px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg pointer-events-none select-none"
+                style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+              >
+                2
+              </span>
+              <div className="w-full h-full p-0.5 grid grid-cols-2 items-center justify-items-center gap-0.5">
+                {occupants.map((occ, idx) => (
+                  <div key={idx} className="z-20">
+                    <Token
+                      color={occ.color}
+                      isValidMove={occ.isValid}
+                      isHopping={occ.isHopping}
+                      isCaptured={occ.isCaptured}
+                      onClick={() => onSelectToken(occ.tokenId)}
+                      size="stack2"
+                      counterRotation={counterRotation}
+                      showBadge={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {occupants.length >= 3 && (
+            <>
+              {/* Stack Count Badge at cell top-right corner */}
+              <span
+                className="absolute -top-1 -right-1 z-30 min-w-[14px] h-[14px] px-0.5 bg-slate-950 text-amber-300 text-[8px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg pointer-events-none select-none"
+                style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
+              >
+                {occupants.length}
+              </span>
+              <div className="w-full h-full p-0.5 grid grid-cols-2 grid-rows-2 items-center justify-items-center gap-0.5">
+                {occupants.map((occ, idx) => (
+                  <div key={idx} className="z-20">
+                    <Token
+                      color={occ.color}
+                      isValidMove={occ.isValid}
+                      isHopping={occ.isHopping}
+                      isCaptured={occ.isCaptured}
+                      onClick={() => onSelectToken(occ.tokenId)}
+                      size="xs"
+                      counterRotation={counterRotation}
+                      showBadge={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       );

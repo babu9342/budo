@@ -12,7 +12,8 @@ function Token({
   stackCount = 1,
   size = 'md',
   counterRotation = 0,
-  showArrow = true
+  showArrow = true,
+  showBadge = true
 }) {
   const handleClick = (e) => {
     e.stopPropagation();
@@ -36,6 +37,14 @@ function Token({
 
   const styleClass = colorMap[color?.key] || colorMap.red;
 
+  const dim = size === 'xs'
+    ? '15px'
+    : size === 'stack2'
+    ? '18px'
+    : size === 'sm'
+    ? '22px'
+    : '28px';
+
   return (
     <div
       onClick={handleClick}
@@ -45,18 +54,18 @@ function Token({
           : isHopping
           ? 'animate-token-hop z-50 scale-125 pointer-events-none'
           : isValidMove
-          ? 'cursor-pointer hover:scale-125 active:scale-95 z-50 pointer-events-auto'
+          ? 'cursor-pointer hover:scale-125 active:scale-95 z-50 pointer-events-auto animate-token-blink'
           : 'z-30 pointer-events-auto'
       }`}
       style={{
-        width: size === 'sm' ? '22px' : '28px',
-        height: size === 'sm' ? '22px' : '28px'
+        width: dim,
+        height: dim
       }}
     >
       {/* Large Glowing Move Indicator Arrow (Only shown on track when showArrow is true) */}
       {showArrow && isValidMove && !isHopping && !isCaptured && (
         <div
-          className="absolute -top-8 sm:-top-9 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-indicator-pulse flex flex-col items-center origin-bottom"
+          className={`absolute ${size === 'xs' || size === 'stack2' ? '-top-6 scale-75' : '-top-8 sm:-top-9'} left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-indicator-pulse flex flex-col items-center origin-bottom`}
           style={counterRotation ? { transform: `translateX(-50%) rotate(${-counterRotation}deg)` } : undefined}
         >
           <svg
@@ -94,12 +103,12 @@ function Token({
         } ${isSelected ? 'ring-4 ring-yellow-400 scale-110' : ''}`}
       >
         {/* Inner Highlight Ring */}
-        <div className="w-2.5 h-2.5 rounded-full bg-white/80 shadow-inner flex items-center justify-center">
-          <div className="w-1 h-1 rounded-full bg-slate-900/50"></div>
+        <div className={`${size === 'xs' ? 'w-1.5 h-1.5' : size === 'stack2' ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-full bg-white/80 shadow-inner flex items-center justify-center`}>
+          <div className={`${size === 'xs' ? 'w-0.5 h-0.5' : 'w-1 h-1'} rounded-full bg-slate-900/50`}></div>
         </div>
 
         {/* Stack Multiplier Badge */}
-        {stackCount > 1 && !isHopping && !isCaptured && (
+        {showBadge && stackCount > 1 && !isHopping && !isCaptured && (
           <span
             className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-950 text-white text-[9px] font-black rounded-full border border-amber-400 flex items-center justify-center shadow-lg"
             style={counterRotation ? { transform: `rotate(${-counterRotation}deg)` } : undefined}
