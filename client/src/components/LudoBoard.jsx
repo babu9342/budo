@@ -8,7 +8,7 @@ import { BOARD_THEMES } from '../game/boardThemes';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 
-export default function LudoBoard({
+function LudoBoard({
   gameState,
   onSelectToken,
   validTokens = [],
@@ -765,7 +765,7 @@ function Classic4PlayerBoard({
 /**
  * Renders Home Base Yard Box with classic inset square, diamond, and 4 Token Slots.
  */
-function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, timerSeconds = 10, counterRotation = 0 }) {
+const HomeYard = React.memo(function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, isCurrentTurn, moveTimer, timerSeconds = 10, counterRotation = 0 }) {
   if (!player) {
     return (
       <div className="w-full h-full rounded-xl flex flex-col items-center justify-center"
@@ -1007,7 +1007,7 @@ function HomeYard({ colorHex, colorName, player, tokens, onSelectToken, theme, i
       )}
     </div>
   );
-}
+});
 
 /**
  * Sub-Grid Track Cell Builder with Theme support and precise home stretch mapping
@@ -1124,7 +1124,7 @@ function renderSubGrid(
 /**
  * 6-Player and 8-Player Radial Geometric Board Layout
  */
-function RadialMultiPlayerBoard({
+const RadialMultiPlayerBoard = React.memo(function RadialMultiPlayerBoard({
   gameState,
   cellOccupants,
   homeBases,
@@ -1229,5 +1229,7 @@ function RadialMultiPlayerBoard({
       })}
     </div>
   );
-}
+});
+
+export default React.memo(LudoBoard);
 

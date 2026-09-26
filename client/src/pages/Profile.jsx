@@ -44,16 +44,13 @@ export default function Profile() {
 
   const handleSaveUsername = async () => {
     sound.playClick();
-    if (!usernameInput.trim()) return;
+    const cleanName = usernameInput.trim();
+    if (!cleanName) return;
+    dispatch(updateUser({ username: cleanName }));
+    setEditingName(false);
     try {
-      const res = await api.put('/users/me', { username: usernameInput.trim() });
-      if (res.data.success) {
-        dispatch(updateUser({ username: usernameInput.trim() }));
-        setEditingName(false);
-      }
-    } catch (e) {
-      setEditingName(false);
-    }
+      await api.put('/users/me', { username: cleanName }).catch(() => {});
+    } catch (e) {}
   };
 
   const winRate = user?.games_played > 0 ? ((user.wins / user.games_played) * 100).toFixed(1) : '0.0';

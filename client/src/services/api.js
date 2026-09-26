@@ -10,12 +10,21 @@ export const api = axios.create({
   }
 });
 
-// Attach JWT token to all requests
+// Attach JWT token & guest headers to all requests
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('budo_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  try {
+    const rawUser = sessionStorage.getItem('budo_user') || localStorage.getItem('budo_guest_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u.username) {
+        config.headers['x-guest-name'] = encodeURIComponent(u.username);
+      }
+    }
+  } catch (e) {}
   return config;
 });
 
@@ -24,12 +33,6 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const config = err.config;
-
-    if (err.response && err.response.status === 401) {
-      sessionStorage.removeItem('budo_token');
-      sessionStorage.removeItem('budo_user');
-      return Promise.reject(err);
-    }
 
     // Only retry GET requests or requests explicitly configured with retry
     if (config && config.method === 'get' && (!config._retryCount || config._retryCount < 2)) {

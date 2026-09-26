@@ -77,6 +77,7 @@ export default function OfflineGame() {
   const [rollTimerSeconds, setRollTimerSeconds] = useState(10);
   const rollTimerIntervalRef = useRef(null);
   const autoRollInProgressRef = useRef(false);
+  const rollLockRef = useRef(false);
 
   const handleSelectTheme = (tId) => {
     sound.playClick();
@@ -119,9 +120,12 @@ export default function OfflineGame() {
 
   // Roll Dice (1.6s animation matching Dice.jsx)
   const handleRollDice = (isAutoRoll = false) => {
-    if (!engine || diceRolling) return;
+    console.log('Dice clicked');
+    if (rollLockRef.current || !engine || diceRolling) return;
     const current = engine.players[engine.currentTurnIndex];
     if (!isAutoRoll && current.isBot) return;
+
+    rollLockRef.current = true;
 
     // Clear roll timer immediately
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
@@ -134,6 +138,7 @@ export default function OfflineGame() {
     setTimeout(() => {
       const rollRes = engine.rollDice();
       setDiceRolling(false);
+      rollLockRef.current = false;
       if (rollRes) {
         setGameState(rollRes.gameState);
 

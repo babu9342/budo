@@ -1,6 +1,14 @@
 import { gameManager } from '../game/gameEngine.js';
 import { getBotMove } from '../game/bot.js';
 
+function emitToGameRooms(io, targetRoom, altRoom, eventName, data) {
+  const rooms = [`room:${targetRoom}`];
+  if (altRoom && altRoom !== targetRoom) {
+    rooms.push(`room:${altRoom}`);
+  }
+  io.to(rooms).emit(eventName, data);
+}
+
 export function setupGameSocket(io, socket) {
   // Rejoin ongoing game session (handles browser refresh, app restart, connection drop)
   socket.on('game:rejoin', ({ roomId, roomCode, user }) => {
@@ -95,7 +103,7 @@ export function setupGameSocket(io, socket) {
       const targetRoom = rollResult.gameState.roomCode || rollResult.gameState.roomId || roomId;
       const altRoom = rollResult.gameState.roomId && rollResult.gameState.roomId !== targetRoom ? rollResult.gameState.roomId : null;
 
-      // Broadcast dice roll animation and result
+      // Broadcast dice roll animation and result exactly once
       const eventData = {
         playerIndex: rollResult.gameState.currentTurnIndex,
         diceValue: rollResult.diceValue,
@@ -105,18 +113,14 @@ export function setupGameSocket(io, socket) {
         gameState: rollResult.gameState
       };
 
-      io.to(`room:${targetRoom}`).emit('dice:result', eventData);
-      if (altRoom) {
-        io.to(`room:${altRoom}`).emit('dice:result', eventData);
-      }
+      emitToGameRooms(io, targetRoom, altRoom, 'dice:result', eventData);
 
       if (rollResult.autoPass || rollResult.consecutiveSixesSkipped) {
         // Roll animation takes ~1.6s + 2-second delay for players to see the rolled value (3.6s total)
         setTimeout(() => {
           const updatedState = gameManager.advanceTurn(roomId);
           if (updatedState) {
-            io.to(`room:${targetRoom}`).emit('game:state', { game: updatedState });
-            if (altRoom) io.to(`room:${altRoom}`).emit('game:state', { game: updatedState });
+            emitToGameRooms(io, targetRoom, altRoom, 'game:state', { game: updatedState });
             checkAndTriggerBotTurn(io, targetRoom);
           }
         }, 3600);
@@ -141,7 +145,7 @@ export function setupGameSocket(io, socket) {
       const targetRoom = moveResult.gameState.roomCode || moveResult.gameState.roomId || roomId;
       const altRoom = moveResult.gameState.roomId && moveResult.gameState.roomId !== targetRoom ? moveResult.gameState.roomId : null;
 
-      // Broadcast token movement animation and game update
+      // Broadcast token movement animation and game update exactly once
       const updateData = {
         tokenId,
         outcome: moveResult.outcome,
@@ -151,24 +155,14 @@ export function setupGameSocket(io, socket) {
         gameState: moveResult.gameState
       };
 
-      io.to(`room:${targetRoom}`).emit('token:update', updateData);
-      if (altRoom) {
-        io.to(`room:${altRoom}`).emit('token:update', updateData);
-      }
+      emitToGameRooms(io, targetRoom, altRoom, 'token:update', updateData);
 
       if (moveResult.gameOver) {
-        io.to(`room:${targetRoom}`).emit('game:finish', {
+        emitToGameRooms(io, targetRoom, altRoom, 'game:finish', {
           winner: moveResult.winner,
           rankings: moveResult.rankings,
           gameState: moveResult.gameState
         });
-        if (altRoom) {
-          io.to(`room:${altRoom}`).emit('game:finish', {
-            winner: moveResult.winner,
-            rankings: moveResult.rankings,
-            gameState: moveResult.gameState
-          });
-        }
       } else if (moveResult.bonusTurn) {
         // Bonus roll for same player: brief pause for coin hop settle
         setTimeout(() => {
@@ -176,12 +170,10 @@ export function setupGameSocket(io, socket) {
         }, 1200);
       } else if (moveResult.requiresTurnSwitch) {
         // 2-second delay after coin move animation completes before switching to next player's turn
-        // Coin move animation takes ~600ms + 2000ms delay = 2600ms total
         setTimeout(() => {
           const updatedState = gameManager.advanceTurn(roomId);
           if (updatedState) {
-            io.to(`room:${targetRoom}`).emit('game:state', { game: updatedState });
-            if (altRoom) io.to(`room:${altRoom}`).emit('game:state', { game: updatedState });
+            emitToGameRooms(io, targetRoom, altRoom, 'game:state', { game: updatedState });
             checkAndTriggerBotTurn(io, targetRoom);
           }
         }, 2600);
@@ -222,19 +214,18 @@ function checkAndTriggerBotTurn(io, roomId) {
           gameState: rollResult.gameState
         };
 
-        io.to(`room:${targetRoom}`).emit('dice:result', eventData);
-        if (altRoom) io.to(`room:${altRoom}`).emit('dice:result', eventData);
+        emitToGameRooms(io, targetRoom, altRoom, 'dice:result', eventData);
 
         if (rollResult.autoPass || rollResult.consecutiveSixesSkipped) {
           // 1.6s dice roll animation + 2s delay
           setTimeout(() => {
             const updatedState = gameManager.advanceTurn(roomId);
             if (updatedState) {
-              io.to(`room:${targetRoom}`).emit('game:state', { game: updatedState });
-              if (altRoom) io.to(`room:${altRoom}`).emit('game:state', { game: updatedState });
+              emitToGameRooms(io, targetRoom, altRoom, 'game:state', { game: updatedState });
               checkAndTriggerBotTurn(io, roomId);
             }
           }, 3600);
+        } else {
           setTimeout(async () => {
             const activeGame = gameManager.getGame(roomId);
             if (!activeGame || activeGame.phase !== 'WAITING_MOVE') return;
@@ -260,22 +251,14 @@ function checkAndTriggerBotTurn(io, roomId) {
                 gameState: moveResult.gameState
               };
 
-              io.to(`room:${targetRoom}`).emit('token:update', moveEventData);
-              if (altRoom) io.to(`room:${altRoom}`).emit('token:update', moveEventData);
+              emitToGameRooms(io, targetRoom, altRoom, 'token:update', moveEventData);
 
               if (moveResult.gameOver) {
-                io.to(`room:${targetRoom}`).emit('game:finish', {
+                emitToGameRooms(io, targetRoom, altRoom, 'game:finish', {
                   winner: moveResult.winner,
                   rankings: moveResult.rankings,
                   gameState: moveResult.gameState
                 });
-                if (altRoom) {
-                  io.to(`room:${altRoom}`).emit('game:finish', {
-                    winner: moveResult.winner,
-                    rankings: moveResult.rankings,
-                    gameState: moveResult.gameState
-                  });
-                }
               } else if (moveResult.bonusTurn) {
                 // Bonus roll for bot
                 setTimeout(() => {
@@ -286,8 +269,7 @@ function checkAndTriggerBotTurn(io, roomId) {
                 setTimeout(() => {
                   const updated = gameManager.advanceTurn(roomId);
                   if (updated) {
-                    io.to(`room:${targetRoom}`).emit('game:state', { game: updated });
-                    if (altRoom) io.to(`room:${altRoom}`).emit('game:state', { game: updated });
+                    emitToGameRooms(io, targetRoom, altRoom, 'game:state', { game: updated });
                     checkAndTriggerBotTurn(io, roomId);
                   }
                 }, 2600);

@@ -2,7 +2,7 @@ import React from 'react';
 import { sound } from '../utils/soundEngine';
 import { triggerHaptic } from '../utils/haptics';
 
-export default function Token({
+function Token({
   color,
   isValidMove,
   isSelected,
@@ -111,3 +111,5 @@ export default function Token({
     </div>
   );
 }
+
+export default React.memo(Token);

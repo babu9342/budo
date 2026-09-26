@@ -6,13 +6,35 @@ export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Authentication required' });
+  const guestNameHeader = req.headers['x-guest-name'];
+  const guestUsername = guestNameHeader ? decodeURIComponent(guestNameHeader) : 'Player_' + Math.floor(1000 + Math.random() * 9000);
+
+  if (!token || token === 'null' || token === 'undefined') {
+    req.user = {
+      id: 'guest_' + Math.random().toString(36).substring(2, 9),
+      username: guestUsername,
+      isGuest: true
+    };
+    return next();
+  }
+
+  if (token.startsWith('guest_') || token.length < 32) {
+    req.user = {
+      id: token,
+      username: guestUsername,
+      isGuest: true
+    };
+    return next();
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+      req.user = {
+        id: token.startsWith('guest_') ? token : 'guest_' + Math.random().toString(36).substring(2, 9),
+        username: guestUsername,
+        isGuest: true
+      };
+      return next();
     }
     req.user = user;
     next();

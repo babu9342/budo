@@ -49,6 +49,7 @@ export default function GamePlay() {
   const autoRollInProgressRef = useRef(false);
 
   const autoMoveTimerRef = useRef(null);
+  const rollLockRef = useRef(false);
 
   const reactionTimerRef = useRef(null);
   const reactionFadeTimerRef = useRef(null);
@@ -137,6 +138,7 @@ export default function GamePlay() {
 
     // Listen to dice result
     socket.on('dice:result', (data) => {
+      rollLockRef.current = false;
       dispatch(setDiceRolling(false));
       dispatch(setGameState(data.gameState));
       sound.playDiceRoll();
@@ -406,13 +408,21 @@ export default function GamePlay() {
   const isRollUrgent = rollTimerSeconds <= 3;
 
   const handleRollDice = () => {
-    if (networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll || diceRolling) return;
+    console.log('Dice clicked');
+    if (rollLockRef.current || networkStatus !== 'connected' || !isMyTurn || !isWaitingRoll || diceRolling) return;
+    rollLockRef.current = true;
+
     console.log(`[GamePlay Dice Roll] Current Player: ${currentPlayer?.username} (index: ${gameState?.currentTurnIndex}, userId: ${currentPlayer?.userId}) is rolling the dice.`);
     // Clear roll timer on manual roll
     if (rollTimerIntervalRef.current) clearInterval(rollTimerIntervalRef.current);
     autoRollInProgressRef.current = false;
     dispatch(setDiceRolling(true));
     socket.emit('dice:roll', { roomId: gameState.roomId || code, user: { id: user?.id, username: user?.username } });
+
+    // Safety fallback: auto-unlock after 2 seconds if network drops
+    setTimeout(() => {
+      rollLockRef.current = false;
+    }, 2000);
   };
 
   const handleSelectToken = (tokenId) => {

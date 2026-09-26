@@ -13,18 +13,11 @@ export default function JoinRedirect() {
 
   useEffect(() => {
     if (!code) {
-      navigate('/');
+      navigate('/home');
       return;
     }
 
-    if (!user) {
-      // Save redirect target and send to login
-      sessionStorage.setItem('budo_redirect_after_login', `/join/${code}`);
-      navigate('/login');
-      return;
-    }
-
-    // Attempt join
+    // Attempt join room directly
     api.post('/rooms/join', { code })
       .then((res) => {
         if (res.data.success) {

@@ -12,7 +12,7 @@ const FACE_ROTATIONS = {
   6: { x: 0, y: 180, z: 0 }      // Back Face: 6 dots
 };
 
-export default function Dice({
+function Dice({
   value,
   isRolling,
   disabled,
@@ -32,6 +32,7 @@ export default function Dice({
   const sixJumpTimeoutRef = useRef(null);
   const coinEntryTimeoutRef = useRef(null);
   const currentRotRef = useRef({ x: 0, y: 0, z: 0 });
+  const rollClickLockRef = useRef(false);
 
   const [cubeTransform, setCubeTransform] = useState(() => {
     const initTarget = FACE_ROTATIONS[value || 1] || FACE_ROTATIONS[1];
@@ -42,6 +43,7 @@ export default function Dice({
   useEffect(() => {
     if (prevDisabledRef.current && !disabled) {
       setHasEntered(true);
+      rollClickLockRef.current = false;
       const t = setTimeout(() => setHasEntered(false), 700);
       return () => clearTimeout(t);
     }
@@ -68,6 +70,7 @@ export default function Dice({
       setIsLandingPop(false);
       setShowCoinEntry(false);
       setIsSixJump(false);
+      rollClickLockRef.current = true;
 
       sound.playDiceRoll();
       triggerHaptic('medium');
@@ -94,6 +97,7 @@ export default function Dice({
 
       const timeout = setTimeout(() => {
         setInternalRoll(false);
+        rollClickLockRef.current = false;
 
         // Tactile landing bounce settle
         setIsLandingPop(true);
@@ -118,15 +122,26 @@ export default function Dice({
       };
     } else {
       setInternalRoll(false);
+      rollClickLockRef.current = false;
     }
   }, [isRolling, value]);
 
   const handleDiceClick = (e) => {
     e?.stopPropagation?.();
-    if (disabled || isRolling || internalRoll) return;
+    console.log('Dice clicked');
+    if (disabled || isRolling || internalRoll || rollClickLockRef.current) return;
+
+    rollClickLockRef.current = true;
     sound.playDiceRoll();
     triggerHaptic('light');
-    onRoll();
+    if (onRoll) {
+      onRoll();
+    }
+
+    // Safety fallback: release lock after roll animation duration if not reset earlier
+    setTimeout(() => {
+      rollClickLockRef.current = false;
+    }, 1600);
   };
 
   // Dynamic 3D engraved pips styled with realistic cavity depth and polished highlights
@@ -286,3 +301,5 @@ export default function Dice({
     </div>
   );
 }
+
+export default React.memo(Dice);

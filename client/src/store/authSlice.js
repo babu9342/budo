@@ -1,81 +1,80 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { api } from '../services/api';
 
-// Clear legacy persistent localStorage tokens if any exist
-try {
-  localStorage.removeItem('budo_token');
-  localStorage.removeItem('budo_user');
-} catch (e) {}
-
-export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async (_, { rejectWithValue }) => {
-  try {
-    const token = sessionStorage.getItem('budo_token');
-    if (!token) return null;
-    const res = await api.get('/auth/me');
-    return res.data.user;
-  } catch (err) {
-    sessionStorage.removeItem('budo_token');
-    return rejectWithValue(err.response?.data?.message || 'Failed to fetch user');
-  }
-});
+function createInitialGuestUser() {
+  const randNum = Math.floor(1000 + Math.random() * 9000);
+  return {
+    id: 'guest_' + Math.random().toString(36).substring(2, 9),
+    username: 'Player_' + randNum,
+    avatar_url: '/avatars/default.png',
+    ranking_points: 1000,
+    games_played: 0,
+    wins: 0,
+    captures: 0,
+    isGuest: true
+  };
+}
 
 let storedUser = null;
 try {
-  const item = sessionStorage.getItem('budo_user');
+  const item = sessionStorage.getItem('budo_user') || localStorage.getItem('budo_guest_user');
   if (item && item !== 'undefined' && item !== 'null') {
     storedUser = JSON.parse(item);
   }
 } catch (e) {
-  console.warn('Failed to parse budo_user from sessionStorage:', e);
-  sessionStorage.removeItem('budo_user');
+  console.warn('Failed to parse budo_user:', e);
 }
+
+if (!storedUser) {
+  storedUser = createInitialGuestUser();
+  try {
+    sessionStorage.setItem('budo_user', JSON.stringify(storedUser));
+    localStorage.setItem('budo_guest_user', JSON.stringify(storedUser));
+    sessionStorage.setItem('budo_token', storedUser.id);
+  } catch (e) {}
+}
+
+export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async () => {
+  return storedUser;
+});
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user: storedUser,
-    token: sessionStorage.getItem('budo_token') || null,
+    token: sessionStorage.getItem('budo_token') || storedUser.id,
     loading: false,
     error: null
   },
   reducers: {
     setAuth: (state, action) => {
       state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.token = action.payload.token || state.user?.id;
       state.error = null;
-      sessionStorage.setItem('budo_token', action.payload.token);
-      sessionStorage.setItem('budo_user', JSON.stringify(action.payload.user));
+      sessionStorage.setItem('budo_token', state.token);
+      sessionStorage.setItem('budo_user', JSON.stringify(state.user));
+      localStorage.setItem('budo_guest_user', JSON.stringify(state.user));
     },
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
       sessionStorage.setItem('budo_user', JSON.stringify(state.user));
+      localStorage.setItem('budo_guest_user', JSON.stringify(state.user));
     },
     logout: (state) => {
-      state.user = null;
-      state.token = null;
+      const newGuest = createInitialGuestUser();
+      state.user = newGuest;
+      state.token = newGuest.id;
       state.error = null;
-      sessionStorage.removeItem('budo_token');
-      sessionStorage.removeItem('budo_user');
+      sessionStorage.setItem('budo_token', newGuest.id);
+      sessionStorage.setItem('budo_user', JSON.stringify(newGuest));
+      localStorage.setItem('budo_guest_user', JSON.stringify(newGuest));
     }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCurrentUser.pending, (state) => {
-        state.loading = true;
-      })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        state.loading = false;
         if (action.payload) {
-          state.user = action.payload;
-          sessionStorage.setItem('budo_user', JSON.stringify(action.payload));
+          state.user = { ...state.user, ...action.payload };
         }
-      })
-      .addCase(fetchCurrentUser.rejected, (state, action) => {
-        state.loading = false;
-        state.user = null;
-        state.token = null;
-        sessionStorage.removeItem('budo_token');
-        sessionStorage.removeItem('budo_user');
       });
   }
 });

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateUser } from '../store/authSlice';
 import { 
   Gamepad2, 
   Users, 
@@ -13,10 +14,10 @@ import {
   Palette, 
   ArrowRight,
   Play,
-  LogIn,
-  UserPlus,
   Zap,
-  Dice5
+  Dice5,
+  Edit3,
+  Check
 } from 'lucide-react';
 import BudoLogo from '../components/BudoLogo';
 import { sound } from '../utils/soundEngine';
@@ -24,28 +25,31 @@ import { triggerHaptic } from '../utils/haptics';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(user?.username || 'Player');
 
   const handleStartGame = () => {
     sound.playClick();
     triggerHaptic('medium');
-    if (user) {
-      navigate('/game');
-    } else {
-      sessionStorage.setItem('budo_redirect_after_login', '/game');
-      navigate('/login');
-    }
+    navigate('/home');
   };
 
   const handlePlayOffline = () => {
     sound.playClick();
     triggerHaptic('light');
-    if (user) {
-      navigate('/offline');
-    } else {
-      sessionStorage.setItem('budo_redirect_after_login', '/offline');
-      navigate('/login');
+    navigate('/offline');
+  };
+
+  const handleSaveName = (e) => {
+    e?.preventDefault?.();
+    sound.playClick();
+    if (nameInput.trim()) {
+      dispatch(updateUser({ username: nameInput.trim() }));
     }
+    setEditingName(false);
   };
 
   return (
@@ -60,45 +64,24 @@ export default function Landing() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-200 hover:border-slate-700 transition-colors"
-              >
-                <img
-                  src={user.avatar_url || '/avatars/default.png'}
-                  alt={user.username}
-                  className="w-5 h-5 rounded-full object-cover border border-amber-400"
-                />
-                <span className="max-w-[100px] truncate">{user.username}</span>
-              </Link>
-              <button
-                onClick={handleStartGame}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-yellow-300 active:scale-95 transition-all flex items-center gap-1.5"
-              >
-                <Play className="w-3.5 h-3.5 fill-slate-950" />
-                <span>Go to Game</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                className="px-3.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-bold text-slate-200 hover:text-white hover:border-slate-700 transition-colors flex items-center gap-1.5"
-              >
-                <LogIn className="w-3.5 h-3.5 text-blue-400" />
-                <span>Login</span>
-              </Link>
-              <Link
-                to="/register"
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-blue-600/30 active:scale-95 transition-all flex items-center gap-1.5"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Sign Up</span>
-              </Link>
-            </>
-          )}
+          <Link
+            to="/profile"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-200 hover:border-slate-700 transition-colors"
+          >
+            <img
+              src={user?.avatar_url || '/avatars/default.png'}
+              alt={user?.username || 'Player'}
+              className="w-5 h-5 rounded-full object-cover border border-amber-400"
+            />
+            <span className="max-w-[100px] truncate">{user?.username || 'Player'}</span>
+          </Link>
+          <button
+            onClick={handleStartGame}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-yellow-300 active:scale-95 transition-all flex items-center gap-1.5"
+          >
+            <Play className="w-3.5 h-3.5 fill-slate-950" />
+            <span>Play Now</span>
+          </button>
         </div>
       </nav>
 
@@ -139,7 +122,7 @@ export default function Landing() {
             className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-amber-500/30 active:scale-95 transition-all flex items-center justify-center gap-2.5 border-2 border-yellow-200/50"
           >
             <Play className="w-5 h-5 fill-slate-950" />
-            <span>{user ? 'Play Now (Enter Game)' : 'Start Game / Play Now'}</span>
+            <span>Play Now (Enter Game)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
@@ -312,8 +295,8 @@ export default function Landing() {
           <Link to="/offline" className="text-slate-400 hover:text-amber-400 transition-colors">
             Offline Mode
           </Link>
-          <Link to="/login" className="text-slate-400 hover:text-amber-400 transition-colors">
-            Account Login
+          <Link to="/settings" className="text-slate-400 hover:text-amber-400 transition-colors">
+            Settings
           </Link>
         </div>
       </footer>

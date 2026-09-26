@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchCurrentUser } from '../store/authSlice';
 import BudoLogo from '../components/BudoLogo';
 
 export default function Splash() {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
@@ -14,21 +13,11 @@ export default function Splash() {
     dispatch(fetchCurrentUser());
 
     const timer = setTimeout(() => {
-      const redirectUrl = sessionStorage.getItem('budo_redirect_after_login');
-      if (user) {
-        if (redirectUrl) {
-          sessionStorage.removeItem('budo_redirect_after_login');
-          navigate(redirectUrl);
-        } else {
-          navigate('/');
-        }
-      } else {
-        navigate('/login');
-      }
+      navigate('/home');
     }, 1600);
 
     return () => clearTimeout(timer);
-  }, [user, navigate, dispatch]);
+  }, [navigate, dispatch]);
 
   return (
     <div className="min-h-screen bg-budo-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
